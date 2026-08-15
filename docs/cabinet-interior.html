@@ -1,0 +1,1404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outdoor cabinet — interactive field guide</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root{
+    --paper:#e9edf1; --panel:#ffffff; --line:#c8d1da; --ink:#18212b; --muted:#4d5b6a;
+    --enclosure:#eef1f4; --shelf:#5c6773; --shelf-dark:#48515c; --module:#8a95a1;
+    --module-dark:#6c7783; --copper:#b06a2e; --copper-dark:#8a5121;
+    --accent:#0b6a7d; --accent-soft:#d3e7ec; --focus:#6a2fd0;
+    --dc-pos:#b3261e; --dc-neg:#1b1f24;
+    --led-green:#12855a; --led-amber:#a86a00; --led-red:#c0392b; --led-off:#8b96a1;
+    --power-flow:#2f6fb0; --signal-flow:#7a4fc4; --thermal-cold:#3f8fbf; --thermal-hot:#c05a2b;
+    --earth-flow:#4f7a1e;
+    --label:12.5px; --caption:11px;
+    --sans:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .app{max-width:1680px;margin:0 auto;padding:18px 18px 40px}
+
+  h1{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+  .sub{margin:2px 0 0;font-size:13px;color:var(--muted)}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:0 2px 12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  .toolbar-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn,.select{
+    font:inherit;font-size:13px;font-weight:500;background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;
+  }
+  .btn:hover,.select:hover{border-color:var(--accent);color:var(--accent)}
+  .btn:focus-visible,.select:focus-visible,.tab-item:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .view-group{display:flex;gap:4px;background:#f1f4f7;border:1px solid var(--line);border-radius:9px;padding:3px}
+  .view-group .btn{border:none;background:none;border-radius:6px;padding:6px 10px}
+  .view-group .btn[aria-pressed="true"]{background:var(--panel);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+  .simbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f6f4fb;border:1px solid #ddd4f2;border-radius:9px;padding:8px 12px;margin-bottom:12px}
+  .simbar[hidden]{display:none}
+  .simbar .stagelabel{font-weight:600;font-size:13.5px}
+  .simbar .readout{font-size:12.5px;color:var(--muted);display:flex;gap:14px}
+  .simbar input[type=range]{flex:1;min-width:160px}
+  .simbar .actiontext{width:100%;font-size:12.5px;color:var(--ink);background:#fff;border:1px solid #ddd4f2;border-radius:6px;padding:6px 9px}
+
+  /* persistent legend, always visible */
+  .legend-bar{
+    display:flex;flex-wrap:wrap;gap:16px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:9px 14px;margin-bottom:12px;font-size:12.5px;color:var(--muted)
+  }
+  .legend-bar .lg-title{font-weight:600;color:var(--ink);font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+  .legend-item{display:flex;align-items:center;gap:6px}
+  .swatch{width:16px;height:3px;border-radius:2px;display:inline-block}
+  .swatch.red{background:var(--dc-pos)}
+  .swatch.black{background:var(--dc-neg)}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.3)}
+  .ring{width:14px;height:14px;border-radius:3px;display:inline-block;border:2px solid var(--led-amber);box-shadow:0 0 0 2px rgba(168,106,0,.15)}
+  .ring.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(11,106,125,.15)}
+
+  .crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px;margin-bottom:8px}
+  .crumb{background:none;border:none;font:inherit;color:var(--accent);cursor:pointer;padding:2px 4px;border-radius:4px}
+  .crumb:hover{text-decoration:underline}
+  .crumb:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+  .crumb[aria-current="true"]{color:var(--ink);font-weight:600;cursor:default;text-decoration:none}
+  .crumb-sep{color:var(--muted)}
+
+  main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+  .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:14px;height:min(78vh,880px);min-height:520px;overflow:hidden}
+  #diagram{display:block;width:100%;height:100%}
+  #flow{position:absolute;inset:0;pointer-events:none}
+  .rail{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;max-height:min(78vh,880px);overflow:auto}
+  @media (max-width:900px){
+    main{grid-template-columns:1fr}
+    .stage{height:64vh;min-height:420px}
+    .rail{max-height:none}
+  }
+
+  .rail h2{font-size:17px;font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+  .rail h3{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:16px 0 5px}
+  .rail p{margin:0 0 8px}
+  .rail .lede{font-size:14px;color:var(--muted)}
+  .rail ul{margin:0;padding-left:18px}
+  .rail li{margin-bottom:4px}
+  .rail .caption{font-size:12px;color:var(--muted);line-height:1.45}
+  .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .fault-item{border-left:3px solid var(--line);padding-left:10px;margin-bottom:9px}
+  .fault-item .sym{font-weight:600}
+  .fault-item .fix{color:var(--muted);font-size:13.5px}
+  .safety{border-left:3px solid var(--led-red);background:#fbeceb;padding:8px 10px;border-radius:0 8px 8px 0;font-size:13px;margin:8px 0}
+  .note{margin-top:14px;padding:10px 12px;background:#f2f6f8;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.45}
+
+  table.schedule{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  table.schedule caption{text-align:left;font-size:11px;color:var(--muted);margin-bottom:5px}
+  table.schedule th,table.schedule td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}
+  table.schedule th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  table.schedule tr.spare td{color:var(--muted);font-style:italic}
+  table.schedule tr{cursor:pointer}
+  table.schedule tr:hover td{background:#f2f6f8}
+  table.schedule tr.row-selected td{background:var(--accent-soft)}
+  table.schedule tr:focus-visible{outline:3px solid var(--focus);outline-offset:-2px}
+
+  /* ---------- svg elements ---------- */
+  .el{cursor:pointer}
+  .el .halo{fill:none;stroke:transparent;stroke-width:2;stroke-linejoin:round}
+  .el:hover .halo{stroke:var(--accent)}
+  .el:focus{outline:none}
+  .el:focus .halo{stroke:var(--focus);stroke-width:2.5;stroke-dasharray:6 3}
+  .el.is-selected .halo{stroke:var(--accent);stroke-width:3;stroke-dasharray:none}
+  #elements.pulse-once .halo{animation:pulse 1.7s ease-out 1}
+  @keyframes pulse{0%,100%{stroke:transparent}35%{stroke:var(--accent);stroke-opacity:.6}}
+  #stage.has-selection .el{opacity:.35;filter:saturate(.3);transition:opacity .3s ease,filter .3s ease}
+  #stage.has-selection .el.is-selected,#stage.has-selection .el.is-ancestor{opacity:1;filter:none}
+  .el{transition:opacity .3s ease,filter .3s ease}
+  .el.fault-glow > .part-body{filter:drop-shadow(0 0 0 var(--led-amber))}
+  .el.fault-glow.level-alarm > .part-body{filter:drop-shadow(0 0 3px var(--led-red)) drop-shadow(0 0 3px var(--led-red))}
+  .el.fault-glow.level-warning > .part-body{filter:drop-shadow(0 0 3px var(--led-amber)) drop-shadow(0 0 3px var(--led-amber))}
+
+  .lbltext{font-size:var(--label);fill:var(--ink);font-family:var(--sans)}
+  .captiontext{font-size:var(--caption);fill:var(--muted);font-family:var(--sans)}
+
+  .overlay{opacity:0;pointer-events:none;transition:opacity .25s ease}
+  .overlay.active{opacity:1}
+  .flow-arrow{fill:none;marker-end:url(#arrowHead)}
+
+  .tooltip{
+    position:absolute;pointer-events:none;background:#18212b;color:#fff;font-size:12.5px;
+    padding:6px 9px;border-radius:6px;max-width:220px;line-height:1.35;z-index:5;
+    transform:translate(-50%,-100%);opacity:0;transition:opacity .12s ease;box-shadow:0 4px 14px rgba(0,0,0,.25)
+  }
+  .tooltip.show{opacity:1}
+  .tooltip b{display:block;margin-bottom:2px}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="toolbar">
+    <div>
+      <h1>Outdoor telecom cabinet, opened</h1>
+      <p class="sub">Field-training cutaway. Tab between shelves, arrow keys move within a shelf, Enter opens detail, Escape steps up.</p>
+    </div>
+    <div class="toolbar-row">
+      <div class="view-group" role="radiogroup" aria-label="Diagram layer">
+        <button class="btn" data-view="physical" aria-pressed="true">Physical</button>
+        <button class="btn" data-view="power" aria-pressed="false">Power flow</button>
+        <button class="btn" data-view="signal" aria-pressed="false">Signal &amp; data</button>
+        <button class="btn" data-view="thermal" aria-pressed="false">Thermal &amp; airflow</button>
+        <button class="btn" data-view="earth" aria-pressed="false">Earthing</button>
+      </div>
+      <button class="btn" id="sim-toggle" aria-pressed="false">Run mains-failure simulation</button>
+      <button class="btn" id="safety-toggle">Safety notes</button>
+      <button class="btn" id="reset-view">Reset view</button>
+    </div>
+  </header>
+
+  <div class="simbar" id="simbar" hidden>
+    <button class="btn" id="sim-play">Play</button>
+    <button class="btn" id="sim-back">\u25c0 Step</button>
+    <button class="btn" id="sim-fwd">Step \u25b6</button>
+    <input type="range" id="sim-scrub" min="0" max="6" step="1" value="0" aria-label="Simulation stage">
+    <span class="stagelabel" id="sim-stagelabel">Mains healthy</span>
+    <span class="readout"><span id="sim-time">t = 0 s</span><span id="sim-volts">Bus 54.0 V</span><span id="sim-alarm">Alarm: none</span></span>
+    <div class="actiontext" id="sim-action"></div>
+  </div>
+
+  <div class="legend-bar" role="note" aria-label="Colour legend, always in effect">
+    <span class="lg-title">Legend</span>
+    <span class="legend-item"><span class="swatch red"></span><span class="swatch black"></span> DC polarity (cable strokes only)</span>
+    <span class="legend-item"><span class="dot" style="background:var(--led-green);border-color:#0a6144"></span> LED status \u2014 always paired with text</span>
+    <span class="legend-item"><span class="ring"></span> Fault / alarm outline glow</span>
+    <span class="legend-item"><span class="ring sel"></span> Selected element</span>
+  </div>
+
+  <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+
+  <main>
+    <section class="stage" id="stage">
+      <svg id="diagram" viewBox="-230 0 760 1010" preserveAspectRatio="xMidYMid meet"
+           role="group" aria-label="Cutaway of an outdoor cabinet with the door hinged open to the left, showing BBU subrack, rectifier shelf, DC distribution panel and battery bank."></svg>
+      <canvas id="flow" aria-hidden="true"></canvas>
+      <div class="tooltip" id="tooltip"></div>
+    </section>
+    <aside class="rail" id="rail" aria-live="polite">
+      <div id="rail-body"></div>
+    </aside>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   1. CONTENT MODEL — every string, figure and fault lives here.
+      Drawing and interaction code below read from ELEMENTS and hardcode nothing.
+   ========================================================================= */
+
+const ELEMENTS = [
+{ id:'cabinet', level:'cabinet', parent:null, name:'Outdoor cabinet',
+  function:'Weatherproof enclosure housing one site\u2019s baseband, power and battery equipment at ground level.',
+  inputs:'AC mains, fibre/backhaul to the core network, outside air.', outputs:'RF/data up to the tower-top radio, conditioned exhaust air.',
+  whyHere:'The stacking order is deliberate: electronics on top away from battery outgassing, weight low for a stable and easily-loaded cabinet, heat rises past the boards to the roof exhaust, and the panel a technician reaches most often sits at a comfortable working height.',
+  typicalValues:['External footprint roughly 600 mm wide, 900 mm deep, 2000 mm tall','Wall thickness and enclosure rating typically IP54\u2013IP55','Static and wind load design per the tower/ground-mount engineering pack'],
+  onSiteAppearance:'A grey steel or GRP enclosure at the base of the tower, door facing the access track, padlocked, standing on a plinth or frame.',
+  commonFaults:[{symptom:'Door will not seal fully',check:'Check the gasket and hinge alignment; a poor seal lets in dust and moisture that drives every other alarm in this cabinet.'},{symptom:'General humidity alarm',check:'Check the door seal and any unused cable glands before opening anything internal.'}],
+  safetyNote:null, vendorAliases:'Outdoor cabinet or equipment enclosure (Emerson/Vertiv, Huawei, Rittal, Schneider, ZTE)' },
+
+/* ---- BBU subrack (top) ---- */
+{ id:'bbu-subrack', level:'shelf', parent:'cabinet', name:'BBU subrack (baseband unit)',
+  function:'Houses the pluggable boards that process baseband signal and hand digitised radio samples up to the tower-top radios.',
+  inputs:'DC power from the busbar, fibre from the RRUs, backhaul to the core network.', outputs:'Digitised downlink to the radios, uplink and O&M traffic to the core.',
+  whyHere:'Placed at the top, farthest from the batteries below, so its ventilation and any battery outgassing never mix, and so its ports are at a comfortable height to patch.',
+  typicalValues:['6U subrack, mixed vendor board widths','DC input \u221248 V nominal, a few hundred watts total draw','Board interfaces: optical CPRI/eCPRI, electrical Ethernet, E1/T1 legacy where fitted'],
+  onSiteAppearance:'A metal 19-inch subrack near the top of the cabinet, a row of pluggable boards each with its own small LED window and a card handle.',
+  commonFaults:[{symptom:'Whole subrack unreachable',check:'Check the DC breaker feeding it before assuming a board fault.'},{symptom:'Overheating alarm on the subrack',check:'Check the fan module is running and the vents above are not blocked.'}],
+  safetyNote:null, vendorAliases:'BBU subrack, baseband unit shelf (Ericsson Baseband, Huawei BBU, Nokia AirScale, ZTE BBU)' },
+{ id:'ctrl-board-1', level:'module', parent:'bbu-subrack', name:'Main control/baseband board 1',
+  function:'Runs the baseband processing and call/session control for the site, active unit.',
+  inputs:'DC power, backplane data from other boards.', outputs:'Processed baseband data toward the RRU and the core network.',
+  whyHere:'Positioned centrally in the subrack for the shortest, most protected backplane paths to the other boards.',
+  typicalValues:['Single- or dual-slot card','Typical power draw 40\u201390 W','Often deployed as an active/standby pair for resilience'],
+  onSiteAppearance:'A card with a status LED window at the front, a card handle and captive screws top and bottom.',
+  commonFaults:[{symptom:'Board LED shows a fault colour',check:'Read the exact alarm on the element management system before reseating anything.'},{symptom:'Board will not initialise after a swap',check:'Confirm the software load matches the site and that the card is fully seated and screws are tight.'}],
+  safetyNote:null, vendorAliases:'Main processing/control board, baseband board (BBU/eNodeB main control board, MPT/UBBP-class cards)' },
+{ id:'ctrl-board-2', level:'module', parent:'bbu-subrack', name:'Main control/baseband board 2',
+  function:'Standby or capacity-sharing baseband board, taking over if board 1 fails.',
+  inputs:'DC power, backplane data.', outputs:'Processed baseband data; takes over active role on failover.',
+  whyHere:'Placed next to board 1 so a single technician visit can service the whole processing pair.',
+  typicalValues:['Same card type as board 1 in most vendor designs','Failover time on the order of seconds to tens of seconds'],
+  onSiteAppearance:'Identical in appearance to board 1; the LED window and management system show which one is currently active.',
+  commonFaults:[{symptom:'Both boards show active simultaneously',check:'This is a management-system inconsistency \u2014 report it rather than pulling either card.'},{symptom:'Standby board never comes into service on a failover drill',check:'Check its LED for a fault state and confirm it is properly seated.'}],
+  safetyNote:null, vendorAliases:'Standby baseband board (same aliases as board 1)' },
+{ id:'backhaul-board', level:'module', parent:'bbu-subrack', name:'Transmission/backhaul board',
+  function:'Carries site traffic out to the core network over microwave or fibre backhaul.',
+  inputs:'Data from the baseband boards over the backplane.', outputs:'Framed traffic out over the backhaul port toward the core network.',
+  whyHere:'Sits beside the baseband boards it serves; its outward-facing port is kept at the edge of the row for easy cable access.',
+  typicalValues:['Backhaul commonly Gigabit or 10 Gigabit Ethernet, or microwave IF','Typical throughput budget a few hundred Mbit/s to a few Gbit/s per site'],
+  onSiteAppearance:'A card with an outward RJ45 or SFP port and its own link/activity LED, usually at one end of the board row.',
+  commonFaults:[{symptom:'Site drops off the network entirely',check:'Check the backhaul link light and the cable/radio at the far end before assuming a board fault.'},{symptom:'Intermittent packet loss to the core',check:'Check for a marginal microwave link (weather, alignment) or a damaged backhaul cable.'}],
+  safetyNote:null, vendorAliases:'Transmission board, backhaul unit (UTRP/UMPT-class cards, IDU-integrated designs)' },
+{ id:'fibre-port', level:'module', parent:'bbu-subrack', name:'Fibre ports (to the tower-top radios)',
+  function:'Carries the CPRI/eCPRI digitised radio link up the mast to each remote radio unit.',
+  inputs:'Downlink baseband samples from the control boards.', outputs:'Digitised RF samples sent up-tower; uplink samples returned.',
+  whyHere:'Mounted low on the backhaul board column so the fronthaul fibre run down to the cable entry is as short and direct as possible.',
+  typicalValues:['Duplex LC connectors, single-mode fibre','Line rate 2.4576\u20139.8304 Gbit/s CPRI, or 10/25 Gbit/s eCPRI','One pair per radio branch typically'],
+  onSiteAppearance:'A small block of LC ports directly below the backhaul board, usually with coloured boots per branch.',
+  commonFaults:[{symptom:'One radio branch reports link down',check:'Clean and reseat that LC pair before suspecting the radio itself.'},{symptom:'All radios down together',check:'Check the shared baseband board and DC feed before the fibre.'}],
+  safetyNote:null, vendorAliases:'CPRI/eCPRI ports, fronthaul interface (naming varies by vendor)' },
+{ id:'vacant-slot-bbu', level:'module', parent:'bbu-subrack', name:'Vacant slot, blanking plate fitted',
+  function:'Reserved capacity for a future baseband or transmission board; the blanking plate maintains airflow and enclosure sealing.',
+  inputs:'None \u2014 unpowered.', outputs:'None.',
+  whyHere:'Left adjacent to the active boards so a future card can be added without re-cabling the row.',
+  typicalValues:['Standard-width blanking plate matched to the subrack','No power or data present'],
+  onSiteAppearance:'A plain metal plate with no connectors, held by the same captive screws as a live board.',
+  commonFaults:[{symptom:'Airflow or temperature alarm traced to this position',check:'Confirm the blanking plate is actually fitted and fully seated \u2014 a missing plate lets hot air recirculate.'}],
+  safetyNote:null, vendorAliases:'Blanking plate, filler panel (generic across vendors)' },
+{ id:'bbu-led-cluster', level:'module', parent:'bbu-subrack', name:'Subrack status LED cluster',
+  function:'Gives a single at-a-glance summary of subrack power, alarm and activity state.',
+  inputs:'Internal status from every board in the subrack.', outputs:'Visual status for the technician at the cabinet.',
+  whyHere:'Placed along the bottom edge of the board row, visible without removing any card.',
+  typicalValues:['Usually RUN, ALM and ACT indicators','Steady green RUN: subrack powered and healthy'],
+  onSiteAppearance:'A narrow strip of small round LEDs below the boards, each with a silkscreened code.',
+  commonFaults:[{symptom:'ALM lit red',check:'Read the specific alarm at the element management system; the LED only tells you one exists.'},{symptom:'RUN dark with everything else lit',check:'Treat as a DC power problem and check the feeding breaker first.'}],
+  safetyNote:null, vendorAliases:'Status/indicator LEDs (RUN/ALM/ACT, PWR/FLT/ACT depending on vendor)' },
+{ id:'bbu-fan', level:'module', parent:'bbu-subrack', name:'Fan module',
+  function:'Draws air across the boards to keep them within their operating temperature.',
+  inputs:'DC power; ambient air drawn from the intake.', outputs:'Warmed exhaust air pushed toward the roof vent.',
+  whyHere:'Positioned at the end of the board row, in the direct path between the boards and the roof exhaust above them.',
+  typicalValues:['Field-replaceable module, hot-swappable on most platforms','Runs faster automatically as internal temperature rises'],
+  onSiteAppearance:'A small finned module with a visible fan grille, often with its own single status LED.',
+  commonFaults:[{symptom:'Overheating alarm with fan audibly not running',check:'Replace the fan module; do not operate the subrack for long with it removed.'},{symptom:'Fan runs continuously at high speed',check:'Check the filter and roof vent for blockage before assuming a fan fault.'}],
+  safetyNote:null, vendorAliases:'Fan tray/module (generic across vendors)' },
+
+/* ---- rectifier shelf (middle) ---- */
+{ id:'rectifier-shelf', level:'shelf', parent:'cabinet', name:'Rectifier shelf',
+  function:'Converts AC mains into the regulated \u221248 V DC bus that feeds the whole cabinet and floats the battery string.',
+  inputs:'AC mains through its protection, supervision commands.', outputs:'Regulated DC to the busbar; status to the controller display and NOC.',
+  whyHere:'Sits above the DC distribution it feeds and below the electronics load, keeping the heaviest current-carrying links short.',
+  typicalValues:['Modular rectifiers, each roughly 1\u20133.5 kW','N+1 sparing is typical practice','Output float voltage roughly 53.5\u201354.5 V DC'],
+  onSiteAppearance:'A shelf of identical narrow modules with handles, LED windows and a small controller display at one end.',
+  commonFaults:[{symptom:'Bus voltage low with mains present',check:'Check for a rectifier in fault or a tripped AC protection device before touching the battery.'},{symptom:'Controller shows communication loss with a rectifier',check:'Reseat that module; if the fault persists, replace it rather than the shelf.'}],
+  safetyNote:null, vendorAliases:'Rectifier shelf, power system, PSU shelf (Delta, Eltek, Emerson/Vertiv, Huawei, Schneider)' },
+{ id:'ac-input', level:'module', parent:'rectifier-shelf', name:'AC input and protection',
+  function:'Brings mains AC into the cabinet and provides the first stage of overcurrent and surge protection.',
+  inputs:'Site AC mains.', outputs:'Protected AC distributed to the rectifier shelf.',
+  whyHere:'Positioned at the point AC first enters the electronics area, immediately downstream of the external SPD.',
+  typicalValues:['Single-phase 220\u2013240 V AC typical for small macro sites; three-phase on larger sites','Main incomer breaker commonly 32\u201363 A'],
+  onSiteAppearance:'A small breaker or isolator block with mains-rated terminals, usually behind its own cover.',
+  commonFaults:[{symptom:'No AC reaching the rectifiers',check:'Check the incomer breaker and the supply from the meter/generator before opening the rectifier shelf.'},{symptom:'Nuisance trips on the incomer',check:'Check for a downstream fault before simply resetting it repeatedly.'}],
+  safetyNote:'Verify isolation with a proving unit before touching AC input terminals, and never assume the surge protection device upstream has cleared a surge.',
+  vendorAliases:'AC input/isolator, mains distribution unit (generic across vendors)' },
+{ id:'rect-1', level:'module', parent:'rectifier-shelf', name:'Rectifier module 1', function:'Converts AC to regulated DC and shares the site load with the other rectifiers.',
+  inputs:'AC from the input protection.', outputs:'Regulated DC to the busbar; status to the controller.',
+  whyHere:'Modular position 1 of a shared row; any module can be swapped without shutting down the shelf.',
+  typicalValues:['Typical rating 1\u20133.5 kW per module','Hot-swappable, current-shares automatically with the others'],
+  onSiteAppearance:'A narrow module with a front handle, mains and DC pins at the rear, one or two LEDs at the front.',
+  commonFaults:[{symptom:'Module LED red or off with AC present',check:'Reseat it; if the fault persists on reseat, replace the module.'},{symptom:'Module runs hot and derates',check:'Check its own fan/vents are not blocked before replacing it.'}],
+  safetyNote:null, vendorAliases:'Rectifier, power module (naming varies by vendor)' },
+{ id:'rect-2', level:'module', parent:'rectifier-shelf', name:'Rectifier module 2', function:'Converts AC to regulated DC and shares the site load with the other rectifiers.',
+  inputs:'AC from the input protection.', outputs:'Regulated DC to the busbar; status to the controller.',
+  whyHere:'Modular position 2, identical role to module 1, providing N+1 redundancy across the row.',
+  typicalValues:['Typical rating 1\u20133.5 kW per module','Hot-swappable, current-shares automatically with the others'],
+  onSiteAppearance:'Identical in appearance to the other rectifier modules.',
+  commonFaults:[{symptom:'Module reports an internal fault on the display',check:'Note the fault code before replacing; some are reset remotely by supervision.'},{symptom:'Module fails to current-share evenly',check:'Check firmware version matches the other modules in the shelf.'}],
+  safetyNote:null, vendorAliases:'Rectifier, power module (naming varies by vendor)' },
+{ id:'rect-3', level:'module', parent:'rectifier-shelf', name:'Rectifier module 3', function:'Converts AC to regulated DC and shares the site load with the other rectifiers.',
+  inputs:'AC from the input protection.', outputs:'Regulated DC to the busbar; status to the controller.',
+  whyHere:'Modular position 3, the redundant (N+1) unit in this three-rectifier example.',
+  typicalValues:['Typical rating 1\u20133.5 kW per module','Sized so the shelf still meets full load with one module out of service'],
+  onSiteAppearance:'Identical in appearance to the other rectifier modules.',
+  commonFaults:[{symptom:'This module is the only one showing fault after a storm',check:'Check for surge damage; compare against the SPD event log if available.'},{symptom:'Module will not power up after insertion',check:'Confirm it is fully seated and the shelf backplane pins are not damaged.'}],
+  safetyNote:null, vendorAliases:'Rectifier, power module (naming varies by vendor)' },
+{ id:'rect-vacant', level:'module', parent:'rectifier-shelf', name:'Vacant rectifier position, blanking plate fitted',
+  function:'Reserved capacity for a future or larger rectifier module.', inputs:'None.', outputs:'None.',
+  whyHere:'Left in the row so shelf capacity can be increased without disturbing the modules already in service.',
+  typicalValues:['Standard blanking plate matched to the shelf module width'], onSiteAppearance:'A plain plate, no handle, no LEDs, in an otherwise identical slot.',
+  commonFaults:[{symptom:'Shelf reports reduced total capacity on the display',check:'Confirm this is expected for the current rectifier count before assuming a fault.'}],
+  safetyNote:null, vendorAliases:'Blanking plate (generic across vendors)' },
+{ id:'rect-controller', level:'module', parent:'rectifier-shelf', name:'Controller/supervision module',
+  function:'Monitors every rectifier and the DC bus, manages battery charge, and raises alarms to the NOC.',
+  inputs:'Status from each rectifier, bus voltage, battery temperature.', outputs:'Charge-control commands, local display, alarm relay outputs.',
+  whyHere:'Placed at the end of the rectifier row where the technician naturally looks first when investigating a power alarm.',
+  typicalValues:['Small LCD or LED display showing bus voltage and load current','Configurable low-voltage disconnect and battery test schedules'],
+  onSiteAppearance:'A module with a small screen and a few navigation buttons, distinct from the plain rectifier modules beside it.',
+  commonFaults:[{symptom:'Display blank',check:'Check its own supply fuse/breaker before assuming the whole shelf is down.'},{symptom:'Displayed bus voltage does not match a multimeter reading at the busbar',check:'Trust the multimeter; report the controller reading as a possible sensor fault.'}],
+  safetyNote:null, vendorAliases:'Rectifier controller, system controller (vendor display names vary)' },
+
+/* ---- DC distribution (lower-middle) ---- */
+{ id:'dc-distribution', level:'shelf', parent:'cabinet', name:'DC distribution panel',
+  function:'Splits the DC bus into individually protected feeds for every load and for the battery string.',
+  inputs:'Regulated DC from the rectifier shelf busbar.', outputs:'Protected DC feeds to BBU, transmission, ancillary loads and the battery.',
+  whyHere:'Sits directly below the rectifiers that feed it and directly above the batteries it protects, keeping both sets of connections short.',
+  typicalValues:['Busbar rated to the shelf\u2019s full DC output, commonly 100\u2013300 A','Miniature circuit breakers per feed, individually rated'],
+  onSiteAppearance:'A row of small breakers behind a common cover, each labelled with its feed, beneath the rectifier shelf.',
+  commonFaults:[{symptom:'One load down, rest of the site fine',check:'Check that load\u2019s individual breaker before looking anywhere else.'},{symptom:'A breaker trips repeatedly',check:'Do not just reset it \u2014 suspect a fault on that specific feed and investigate before re-closing.'}],
+  safetyNote:'Opening a load breaker isolates that feed only \u2014 it does not de-energise the busbar itself, which remains live from the battery even with mains and rectifiers off.',
+  vendorAliases:'DC distribution panel, load distribution unit (LDU) (generic across vendors)' },
+{ id:'dc-busbar', level:'module', parent:'dc-distribution', name:'DC busbar', function:'The common copper bar that all rectifier output, battery and load feeds connect to.',
+  inputs:'DC from the rectifier shelf.', outputs:'DC to every breaker and to the battery breakers.',
+  whyHere:'Runs the full width of the panel at the top so every feed below it has the shortest possible connection.',
+  typicalValues:['Rated to the shelf\u2019s full output current','Remains live from the battery string even with AC and rectifiers isolated'],
+  onSiteAppearance:'An exposed or lightly shrouded copper bar, often the only bare copper visible in the panel.',
+  commonFaults:[{symptom:'Low bus voltage reading at the controller',check:'Confirm with a meter directly at the busbar before condemning any single module.'}],
+  safetyNote:'DC arc-flash risk at the busbar: a dropped spanner or tool bridging it to the enclosure is a direct short with no fuse in the way. Insulate tools and remove rings/watches before working near it.',
+  vendorAliases:'DC busbar, positive/negative bus (generic)' },
+{ id:'breaker-1', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 1 \u2014 BBU / baseband load',
+  function:'Protects and isolates the DC feed to the BBU subrack.', inputs:'DC from the busbar.', outputs:'Protected DC to the BBU subrack.',
+  whyHere:'Grouped with the other load breakers directly below the busbar it taps.',
+  typicalValues:['32 A miniature circuit breaker, typical rating'], onSiteAppearance:'A labelled miniature breaker toggle in the top row of the panel.',
+  commonFaults:[{symptom:'BBU completely dead, rest of panel normal',check:'Check this breaker first \u2014 the most common single-load fault path.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker)', schedule:{position:1,rating:'32 A',loadFed:'BBU / baseband subrack',normalState:'Closed'} },
+{ id:'breaker-2', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 2 \u2014 Transmission / backhaul',
+  function:'Protects and isolates the DC feed to the transmission/backhaul equipment.', inputs:'DC from the busbar.', outputs:'Protected DC to the backhaul board and any external transmission unit.',
+  whyHere:'Kept adjacent to the BBU breaker since the two loads are usually diagnosed together.',
+  typicalValues:['20 A miniature circuit breaker, typical rating'], onSiteAppearance:'Labelled breaker toggle, top row.',
+  commonFaults:[{symptom:'Site loses backhaul but BBU stays up',check:'Check this breaker and the backhaul link light in that order.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker)', schedule:{position:2,rating:'20 A',loadFed:'Transmission / backhaul equipment',normalState:'Closed'} },
+{ id:'breaker-3', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 3 \u2014 Battery string 1',
+  function:'Connects and protects the fitted battery string.', inputs:'DC to/from the battery string.', outputs:'Charge current in, discharge current out.',
+  whyHere:'Battery breakers are grouped separately from load breakers so their higher rating is not mistaken for a load feed.',
+  typicalValues:['63 A miniature circuit breaker, typical rating for a single string'], onSiteAppearance:'A larger-frame breaker than the load breakers, usually grouped at one end of the row.',
+  commonFaults:[{symptom:'Battery not sharing load during a mains failure drill',check:'Check this breaker is closed before suspecting the batteries themselves.'}],
+  safetyNote:'This breaker does not fully isolate the battery from arc-flash risk at the busbar \u2014 the string remains a live source on its own side.',
+  vendorAliases:'Battery breaker/isolator', schedule:{position:3,rating:'63 A',loadFed:'Battery string 1 (fitted)',normalState:'Closed'} },
+{ id:'breaker-4', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 4 \u2014 Battery string 2 (not fitted)',
+  function:'Reserved position for a second battery string, for sites needing longer autonomy.', inputs:'None currently.', outputs:'None currently.',
+  whyHere:'Positioned beside string 1\u2019s breaker so a future string can be added without re-panelling.',
+  typicalValues:['63 A frame, matched to string 1'], onSiteAppearance:'Same frame as breaker 3 but labelled spare, left open.',
+  commonFaults:[{symptom:'Panel schedule shows this position but no batteries are present',check:'Confirm against the site record before assuming a battery is missing/stolen.'}],
+  safetyNote:null, vendorAliases:'Battery breaker/isolator (spare position)', schedule:{position:4,rating:'63 A',loadFed:'Battery string 2 (spare, not fitted)',normalState:'Open'} },
+{ id:'breaker-5', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 5 \u2014 External alarms / auxiliary DC',
+  function:'Feeds low-current auxiliary equipment such as the alarm terminal block and door sensor.', inputs:'DC from the busbar.', outputs:'Protected DC to auxiliary/alarm circuits.',
+  whyHere:'Grouped with the smaller ancillary loads at the lower-rated end of the row.', typicalValues:['16 A miniature circuit breaker, typical rating'],
+  onSiteAppearance:'A smaller-frame breaker, bottom row.', commonFaults:[{symptom:'All external alarms go silent together',check:'Check this breaker before assuming every sensor failed at once.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker)', schedule:{position:5,rating:'16 A',loadFed:'External alarms / auxiliary DC',normalState:'Closed'} },
+{ id:'breaker-6', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 6 \u2014 Site lighting / ancillary DC',
+  function:'Feeds cabinet lighting and other small ancillary DC loads.', inputs:'DC from the busbar.', outputs:'Protected DC to lighting/ancillary circuits.',
+  whyHere:'Grouped with the other small ancillary loads.', typicalValues:['10 A miniature circuit breaker, typical rating'],
+  onSiteAppearance:'Smallest-frame breaker in the row, bottom row.', commonFaults:[{symptom:'No cabinet light on a night visit',check:'Check this breaker before assuming a bulb/fitting fault.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker)', schedule:{position:6,rating:'10 A',loadFed:'Site lighting / ancillary DC',normalState:'Closed'} },
+{ id:'breaker-7', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 7 \u2014 Additional RRU / microwave feed',
+  function:'Feeds an additional tower-top unit, such as a microwave ODU, sharing the same cabinet.', inputs:'DC from the busbar.', outputs:'Protected DC up the mast to the additional unit.',
+  whyHere:'Placed with the other load breakers since it feeds equipment external to this cabinet.', typicalValues:['25 A miniature circuit breaker, typical rating'],
+  onSiteAppearance:'Labelled breaker toggle, bottom row.', commonFaults:[{symptom:'One mast-top unit down, radios otherwise fine',check:'Check this breaker before climbing the tower.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker)', schedule:{position:7,rating:'25 A',loadFed:'Additional RRU / microwave feed',normalState:'Closed'} },
+{ id:'breaker-8', level:'module', parent:'dc-distribution', kind:'breaker', name:'Breaker 8 \u2014 Spare, not in use',
+  function:'Unused position reserved for a future load.', inputs:'None.', outputs:'None.',
+  whyHere:'Kept open in the row so a future feed can be added without re-panelling.', typicalValues:['Frame size matched to the row, no rating fitted'],
+  onSiteAppearance:'Toggle in the off position, labelled spare.', commonFaults:[{symptom:'Found closed with nothing connected',check:'Open it and report the discrepancy \u2014 it should not be live.'}],
+  safetyNote:null, vendorAliases:'MCB (miniature circuit breaker), spare position', schedule:{position:8,rating:'\u2014',loadFed:'Spare, not in use',normalState:'Open'} },
+{ id:'lvd-contactor', level:'module', parent:'dc-distribution', name:'Low-voltage disconnect (LVD) contactor',
+  function:'Automatically sheds non-priority load if the DC bus sags too far during an extended outage, protecting the battery from deep discharge.',
+  inputs:'Bus voltage sense, control power.', outputs:'Opens the contact feeding non-priority loads once the set threshold is reached.',
+  whyHere:'Sits in the distribution panel where it can see true bus voltage and switch load feeds directly.',
+  typicalValues:['Typical trip threshold roughly 42\u201344 V DC on a \u221248 V system','Typical reconnect threshold a few volts above the trip point'],
+  onSiteAppearance:'A larger contactor with a visible armature and a status LED, distinct from the small breakers around it.',
+  commonFaults:[{symptom:'Loads shed earlier than expected',check:'Check the configured trip threshold against the site standard before assuming a fault.'},{symptom:'Contactor chatters near the threshold',check:'Check for a marginal/noisy voltage sense connection.'}],
+  safetyNote:null, vendorAliases:'LVD, low-voltage disconnect relay (generic across vendors)' },
+{ id:'alarm-terminal', level:'module', parent:'dc-distribution', name:'Alarm dry-contact terminal block',
+  function:'Carries volt-free contact signals (door open, mains fail, low voltage, high temperature) out to the site alarm/SCADA system.',
+  inputs:'Contact state from sensors and the controller.', outputs:'Dry-contact signal to the remote monitoring system.',
+  whyHere:'Grouped with the other DC distribution wiring since most of the contacts it carries originate from equipment in this panel.',
+  typicalValues:['Typically 8\u201316 labelled terminal pairs','Volt-free contacts, rated for low signal current only \u2014 not a power feed'],
+  onSiteAppearance:'A small block of numbered screw terminals, each labelled with the alarm it carries.',
+  commonFaults:[{symptom:'An alarm never reaches the NOC despite a visible local fault',check:'Check the specific terminal and its wiring before assuming the sensor itself is faulty.'}],
+  safetyNote:null, vendorAliases:'Alarm terminal block, dry-contact panel (generic across vendors)' },
+
+/* ---- battery bank (bottom) ---- */
+{ id:'battery-bank', level:'shelf', parent:'cabinet', name:'Battery bank',
+  function:'Stores DC energy to ride through a mains outage until generator support arrives or power returns.',
+  inputs:'Float/charge current from the busbar.', outputs:'Discharge current to the busbar during an outage.',
+  whyHere:'Placed at the very bottom: batteries are the heaviest items in the cabinet, so putting them low keeps the whole enclosure stable, and it keeps any outgassing well away from the electronics above.',
+  typicalValues:['Four 12 V VRLA cells in series for a 48 V nominal string','Typical capacity 100\u2013200 Ah per string','Design autonomy commonly 2\u20138 hours depending on site policy'],
+  onSiteAppearance:'Four grey rectangular battery blocks stacked or racked at the base of the cabinet, linked by short heavy cables.',
+  commonFaults:[{symptom:'Autonomy far shorter than expected on test',check:'Check for a weak individual cell using per-cell voltage, not just the string total.'},{symptom:'Swollen or bulging case on one cell',check:'Take that cell out of service; do not continue to cycle a swollen VRLA battery.'}],
+  safetyNote:'VRLA batteries are heavy \u2014 lift with correct technique using the case, never by the terminals or connecting straps.',
+  vendorAliases:'VRLA battery bank, valve-regulated lead-acid string (C&D, EnerSys, Narada, Shoto)' },
+{ id:'battery-1', level:'module', parent:'battery-bank', kind:'battery', name:'Battery 1 (12 V VRLA)', function:'First cell in the series string, contributes 12 V nominal toward the 48 V bus.',
+  inputs:'Charge current.', outputs:'Discharge current.', whyHere:'Positioned first in the series run nearest the busbar feed for the shortest heavy cable run.',
+  typicalValues:['12 V nominal, typically 100\u2013200 Ah','Design life commonly 5\u201310 years float service'], onSiteAppearance:'A grey moulded case with two threaded terminal posts and a vent valve.',
+  commonFaults:[{symptom:'Noticeably warmer than the other three cells',check:'Check for a developing internal fault; report for load-testing rather than continuing to cycle it.'},{symptom:'Terminal corrosion',check:'Check torque and clean the terminal; corrosion adds resistance that shows up as a low-voltage cell under load.'}],
+  safetyNote:'Never lift by the terminals or the inter-cell straps.', vendorAliases:'VRLA battery, sealed lead-acid cell' },
+{ id:'battery-2', level:'module', parent:'battery-bank', kind:'battery', name:'Battery 2 (12 V VRLA)', function:'Second cell in the series string.',
+  inputs:'Charge current.', outputs:'Discharge current.', whyHere:'Series position 2, wired directly to battery 1 by an inter-cell link.',
+  typicalValues:['12 V nominal, typically 100\u2013200 Ah'], onSiteAppearance:'Identical to the other three cells.',
+  commonFaults:[{symptom:'This cell reads noticeably lower voltage than the others under load',check:'Flag it for capacity testing; one weak cell limits the whole string.'}],
+  safetyNote:'Never lift by the terminals or the inter-cell straps.', vendorAliases:'VRLA battery, sealed lead-acid cell' },
+{ id:'battery-3', level:'module', parent:'battery-bank', kind:'battery', name:'Battery 3 (12 V VRLA)', function:'Third cell in the series string.',
+  inputs:'Charge current.', outputs:'Discharge current.', whyHere:'Series position 3, in the lower row for a lower overall centre of gravity.',
+  typicalValues:['12 V nominal, typically 100\u2013200 Ah'], onSiteAppearance:'Identical to the other three cells.',
+  commonFaults:[{symptom:'Case shows a slight bulge',check:'Remove from service; a bulging case indicates internal gas pressure and possible failure.'}],
+  safetyNote:'Never lift by the terminals or the inter-cell straps.', vendorAliases:'VRLA battery, sealed lead-acid cell' },
+{ id:'battery-4', level:'module', parent:'battery-bank', kind:'battery', name:'Battery 4 (12 V VRLA)', function:'Fourth and final cell in the series string, completing the 48 V nominal bus.',
+  inputs:'Charge current.', outputs:'Discharge current, returned to the busbar as the string\u2019s negative or positive end.',
+  whyHere:'Series position 4, wired to the battery breaker for the shortest run to the distribution panel above.',
+  typicalValues:['12 V nominal, typically 100\u2013200 Ah'], onSiteAppearance:'Identical to the other three cells; its far terminal connects to the battery breaker cable.',
+  commonFaults:[{symptom:'String voltage present but breaker will not close',check:'Check the breaker itself and the cable lug at this cell before assuming a battery fault.'}],
+  safetyNote:'Never lift by the terminals or the inter-cell straps.', vendorAliases:'VRLA battery, sealed lead-acid cell' },
+{ id:'battery-links', level:'module', parent:'battery-bank', name:'Inter-cell links', function:'Short heavy cables or straps connecting the four cells in series to form the 48 V string.',
+  inputs:'Current passing between adjacent cells.', outputs:'Continues the series path to the next cell or to the battery breaker.',
+  whyHere:'As short as practical between adjacent cells to minimise resistance and voltage drop in the string.',
+  typicalValues:['Heavy-gauge copper strap or cable, torqued to the battery maker\u2019s figure'], onSiteAppearance:'Short black-insulated straps bolted directly between adjacent terminal posts.',
+  commonFaults:[{symptom:'String voltage lower than the sum of the four cells',check:'Check every link for a loose or corroded connection \u2014 a high-resistance link drops voltage under load even when each cell tests fine alone.'}],
+  safetyNote:'A dropped tool bridging adjacent terminals or a link is a direct short with no fuse in the way \u2014 insulate tools and remove rings/watches before working here.',
+  vendorAliases:'Inter-cell link, series strap (generic across battery vendors)' },
+{ id:'battery-temp-sensor', level:'module', parent:'battery-bank', name:'Battery temperature sensor', function:'Measures battery temperature so the rectifier controller can compensate charge voltage.',
+  inputs:'Ambient/case temperature at the battery.', outputs:'Temperature reading to the rectifier controller.',
+  whyHere:'Mounted directly on or beside one battery case so its reading represents the string, not the cabinet\u2019s general ambient.',
+  typicalValues:['Compensates charge voltage roughly \u22123 mV per cell per \u00b0C, typical figure'], onSiteAppearance:'A small probe with a thin cable running up to the rectifier controller, clipped or adhered to a battery case.',
+  commonFaults:[{symptom:'Charge voltage seems wrong for the ambient temperature',check:'Check the sensor is actually attached to a cell, not hanging loose in air.'},{symptom:'Sensor reads open/fault on the controller',check:'Check the cable for damage before replacing the sensor.'}],
+  safetyNote:null, vendorAliases:'Battery temperature compensation probe (generic across vendors)' },
+
+/* ---- side wall / structure ---- */
+{ id:'earth-bar', level:'shelf', parent:'cabinet', name:'Copper earth bar', function:'Common bonding point for every earth conductor in the cabinet, connected out to the site earth mat.',
+  inputs:'Bonding leads from every shelf and the door.', outputs:'A single low-impedance path out to the earth mat.',
+  whyHere:'Runs the full height of the side wall so every shelf has the shortest possible bonding lead to it.',
+  typicalValues:['Tinned copper bar, typically 6\u201310 mm thick, sized to the site earthing design','Site earth resistance target often below 5\u201310 \u03a9'],
+  onSiteAppearance:'A bright copper strip on the inner side wall with several labelled bonding leads landing on it.',
+  commonFaults:[{symptom:'Site fails an earth resistance test',check:'Trace each bonding lead back to a sound termination before assuming the earth mat itself has failed.'},{symptom:'Repeated equipment damage after storms',check:'Check every lead on this bar for corrosion or a loose lug.'}],
+  safetyNote:null, vendorAliases:'Earth bar, main earthing terminal (generic across vendors)' },
+{ id:'spd', level:'shelf', parent:'cabinet', name:'Surge protection device (AC input)', function:'Clamps transient overvoltage on the incoming AC before it reaches the rectifier shelf.',
+  inputs:'AC mains, including any transient surge.', outputs:'Clamped AC to the rectifier input; surge energy diverted to earth.',
+  whyHere:'Installed as close as possible to the point AC enters the enclosure, ahead of everything it protects.',
+  typicalValues:['Type 2 (or combined Type 1+2) SPD typical for this position','Has a visible end-of-life indicator on most designs'],
+  onSiteAppearance:'A compact DIN-rail module near the AC input, usually with a small red/green mechanical indicator window.',
+  commonFaults:[{symptom:'Indicator shows end-of-life',check:'Replace the module \u2014 a failed SPD gives no protection even though it looks physically intact.'},{symptom:'Repeated rectifier faults after storms',check:'Check this device\u2019s indicator before assuming the rectifiers themselves are simply unreliable.'}],
+  safetyNote:'Never assume the SPD has cleared a surge just because equipment still appears to run \u2014 check its indicator.',
+  vendorAliases:'Surge protection device, SPD, surge arrestor (DEHN, Phoenix Contact, Raycap)' },
+{ id:'cable-entry', level:'shelf', parent:'cabinet', name:'Cable entry / gland plate', function:'Seals every external cable (AC, fibre, earth) as it enters the enclosure.',
+  inputs:'External cables from the tower and the AC supply.', outputs:'A sealed path for those cables into the cabinet interior.',
+  whyHere:'Positioned at the base, below the battery bank, so cables run the shortest distance from underground or tower-base ducting.',
+  typicalValues:['Mixed gland sizes matched to each cable type','Unused holes fitted with blanking grommets'],
+  onSiteAppearance:'A flat plate at the cabinet base with several circular cable glands and a few spare blanked holes.',
+  commonFaults:[{symptom:'Water ingress traced to the cabinet base',check:'Check every gland is fully tightened and every unused hole is blanked.'}],
+  safetyNote:null, vendorAliases:'Gland plate, cable entry plate (generic across vendors)' },
+{ id:'door-filter', level:'shelf', parent:'cabinet', name:'Door with intake filter', function:'Provides access to the cabinet and, through its filter panel, the main path for cool intake air.',
+  inputs:'Outside air through the filter media.', outputs:'Filtered air into the cabinet interior.',
+  whyHere:'Mounted low on the door so intake air is drawn across the equipment from bottom to top, following the natural rise of heat to the roof exhaust.',
+  typicalValues:['Washable or replaceable filter media, inspection interval per site maintenance schedule'],
+  onSiteAppearance:'A louvred panel set into the lower door, often with a visible mesh or foam filter behind it.',
+  commonFaults:[{symptom:'Summer temperature/derating alarms',check:'Check this filter for dust or debris blockage first \u2014 a blocked filter starves the whole cabinet of cooling air.'},{symptom:'Door will not close fully',check:'Check the filter panel is correctly seated in its frame.'}],
+  safetyNote:null, vendorAliases:'Door filter, intake filter panel (generic across vendors)' },
+{ id:'intake-vent', level:'shelf', parent:'cabinet', name:'Intake vent (lower)', function:'Lets outside air into the cabinet, drawn in low so it crosses all the equipment before leaving at the roof.',
+  inputs:'Outside air.', outputs:'Air path into the lower cabinet interior.',
+  whyHere:'Placed low, working with the door filter, so airflow follows heat rising naturally through the cabinet rather than short-circuiting near the roof.',
+  typicalValues:['Sized to the fan module\u2019s rated airflow'], onSiteAppearance:'A louvred strip low on the cabinet body.',
+  commonFaults:[{symptom:'Poor airflow despite a clean filter',check:'Check this vent itself is not obstructed by debris or insect nesting.'}],
+  safetyNote:null, vendorAliases:'Intake louvre (generic across vendors)' },
+{ id:'exhaust-vent', level:'shelf', parent:'cabinet', name:'Exhaust vent (roof)', function:'Lets warmed air leave the cabinet at the highest point, where heat naturally collects.',
+  inputs:'Warm air pushed up by the fan module.', outputs:'Exhaust air released outside the cabinet.',
+  whyHere:'Placed at the top of the enclosure, above the electronics, because that is where rising warm air collects.',
+  typicalValues:['Sized to the fan module\u2019s rated airflow, often with a rain hood'], onSiteAppearance:'A louvred strip or hooded vent at the top of the cabinet.',
+  commonFaults:[{symptom:'Cabinet runs hot despite a working fan',check:'Check this vent for blockage or a stuck rain hood before replacing the fan.'}],
+  safetyNote:null, vendorAliases:'Exhaust louvre, roof vent (generic across vendors)' }
+];
+
+const BY_ID = new Map(ELEMENTS.map(e => [e.id, e]));
+function childrenOf(id) { return ELEMENTS.filter(e => e.parent === id); }
+function ancestorsOf(id) { const out = []; let cur = BY_ID.get(id); while (cur && cur.parent) { out.unshift(cur.parent); cur = BY_ID.get(cur.parent); } return out; }
+
+/* Repeated-item groups for roving tabindex (Tab visits the group once, arrows move within). */
+const GROUPS = {
+  'bbu-boards': ['ctrl-board-1','ctrl-board-2','backhaul-board','vacant-slot-bbu','bbu-fan'],
+  'rectifiers': ['rect-1','rect-2','rect-3','rect-vacant'],
+  'breakers': ['breaker-1','breaker-2','breaker-3','breaker-4','breaker-5','breaker-6','breaker-7','breaker-8'],
+  'batteries': ['battery-1','battery-2','battery-3','battery-4']
+};
+const GROUP_OF = {};
+Object.entries(GROUPS).forEach(([g, ids]) => ids.forEach((id, i) => { GROUP_OF[id] = { group: g, index: i, size: ids.length }; }));
+
+/* Mains-failure simulation timeline: name, elapsed seconds, bus voltage, alarm text, technician action. */
+const SIM_STAGES = [
+  { name:'Mains healthy', t:0, busV:54.0, alarm:'None', action:'Normal float operation. Rectifiers are carrying the full load and trickle-charging the battery string.', rectFault:false, lvdTrip:false, battActive:false },
+  { name:'AC mains fails', t:3, busV:54.0, alarm:'Mains Fail / AC Input Alarm', action:'Rectifiers lose AC input. The bus is still held for an instant by rectifier output capacitance.', rectFault:false, lvdTrip:false, battActive:false },
+  { name:'Rectifiers drop out', t:5, busV:53.6, alarm:'Rectifier Fail (\u00d73)', action:'All three rectifier modules report loss of input and their output relays open.', rectFault:true, lvdTrip:false, battActive:false },
+  { name:'Batteries assume the load', t:8, busV:52.8, alarm:'Battery Discharging', action:'The battery string now supplies the entire DC bus; discharge current begins to rise.', rectFault:true, lvdTrip:false, battActive:true },
+  { name:'Bus voltage sags', t:13, busV:48.5, alarm:'Low Voltage Warning (LVW)', action:'Check for a genuine mains outage versus a local AC input or breaker fault before doing anything else.', rectFault:true, lvdTrip:false, battActive:true },
+  { name:'Alarm raised on dry contact', t:17, busV:46.2, alarm:'DC Low Voltage \u2014 sent to NOC', action:'Confirm the SCADA/NOC alarm actually arrived; for a remote site this is the technician\u2019s real first indication.', rectFault:true, lvdTrip:false, battActive:true },
+  { name:'Low-voltage disconnect trips', t:20, busV:42.0, alarm:'LVD Operated \u2014 Load Shed', action:'Non-priority loads are shed automatically to protect the battery from deep discharge. Confirm LVD contactor status; restoring AC is the real fix, not resetting anything here.', rectFault:true, lvdTrip:true, battActive:true }
+];
+
+const ORIENTATION = {
+  lede:'This is a typical outdoor cabinet, door open toward you. Baseband electronics sit at the top, the rectifier shelf converts mains AC to DC in the middle, DC distribution splits that supply into protected feeds just below it, and the battery string sits at the very bottom.',
+  rationale:'The stack is not arbitrary: weight goes low so the cabinet stays stable and easy to load; heat rises, so electronics sit above the roof-ward airflow rather than in it; batteries and their outgassing stay well away from the electronics above; and the panel a technician touches most \u2014 DC distribution \u2014 sits at a comfortable working height rather than at floor level or overhead.',
+  keyboard:'Keyboard: Tab moves between shelves and major regions. Inside a shelf with repeated items \u2014 boards, rectifiers, breakers, batteries \u2014 the arrow keys move between them. Enter or Space opens the detail panel. Escape steps up one level.',
+  disclaimer:'All figures shown throughout this diagram are representative ranges for a typical LTE macro site power plant. They are illustrative and vendor-dependent, not manufacturer specifications \u2014 always work from the documentation for the cabinet in front of you.'
+};
+
+/* =========================================================================
+   2. GEOMETRY — layout only, no content. Boxes for every element id.
+   ========================================================================= */
+
+const CAB = { x:60, y:50, w:400, h:900 };          // right 460, bottom 950
+const IN  = { x:90, w:340 };                        // inner content column
+
+const GEO = {};
+GEO['cabinet'] = { x:CAB.x, y:CAB.y, w:CAB.w, h:CAB.h };
+
+// BBU subrack band 90-300
+GEO['bbu-subrack'] = { x:IN.x, y:90, w:IN.w, h:210 };
+const bbuSlotW = 62, bbuSlotGap = 4, bbuBase = 98;
+['ctrl-board-1','ctrl-board-2','backhaul-board','vacant-slot-bbu','bbu-fan'].forEach((id, i) => {
+  GEO[id] = { x: bbuBase + i * (bbuSlotW + bbuSlotGap), y:100, w:bbuSlotW, h:140 };
+});
+GEO['fibre-port'] = { x:GEO['backhaul-board'].x, y:242, w:bbuSlotW, h:14 };
+GEO['bbu-led-cluster'] = { x:98, y:260, w:326, h:18 };
+
+// Rectifier band 310-480
+GEO['rectifier-shelf'] = { x:IN.x, y:310, w:IN.w, h:170 };
+GEO['ac-input'] = { x:90, y:320, w:55, h:150 };
+const rectSlotW = 58, rectGap = 6, rectBase = 155;
+['rect-1','rect-2','rect-3','rect-vacant'].forEach((id, i) => {
+  GEO[id] = { x: rectBase + i * (rectSlotW + rectGap), y:320, w:rectSlotW, h:130 };
+});
+GEO['rect-controller'] = { x:405, y:320, w:25, h:150 };
+GEO['spd'] = { x:90, y:300, w:55, h:8 };
+
+// DC distribution band 490-630
+GEO['dc-distribution'] = { x:IN.x, y:490, w:IN.w, h:140 };
+GEO['dc-busbar'] = { x:90, y:498, w:340, h:14 };
+const brW = 78, brGap = 5, brBaseX = 90, brRowY = [522, 560], brH = 34;
+for (let i = 0; i < 8; i++) {
+  const col = i % 4, row = Math.floor(i / 4);
+  GEO['breaker-' + (i + 1)] = { x: brBaseX + col * (brW + brGap), y: brRowY[row], w:brW, h:brH };
+}
+GEO['lvd-contactor'] = { x:90, y:600, w:110, h:24 };
+GEO['alarm-terminal'] = { x:210, y:600, w:110, h:24 };
+
+// Battery band 640-910
+GEO['battery-bank'] = { x:IN.x, y:640, w:IN.w, h:270 };
+GEO['battery-1'] = { x:90, y:650, w:150, h:112 };
+GEO['battery-2'] = { x:250, y:650, w:150, h:112 };
+GEO['battery-3'] = { x:90, y:775, w:150, h:112 };
+GEO['battery-4'] = { x:250, y:775, w:150, h:112 };
+GEO['battery-links'] = { x:90, y:758, w:310, h:20 };
+GEO['battery-temp-sensor'] = { x:100, y:656, w:18, h:18 };
+
+// Side/structure
+GEO['earth-bar'] = { x:438, y:90, w:10, h:820 };
+GEO['cable-entry'] = { x:90, y:920, w:340, h:18 };
+GEO['intake-vent'] = { x:90, y:906, w:340, h:8 };
+GEO['exhaust-vent'] = { x:90, y:58, w:340, h:10 };
+GEO['door-filter'] = { x:-170, y:640, w:110, h:220 };
+
+function midX(g) { return g.x + g.w / 2; }
+function midY(g) { return g.y + g.h / 2; }
+function edge(g, side) {
+  if (side === 'left') return [g.x, midY(g)];
+  if (side === 'right') return [g.x + g.w, midY(g)];
+  if (side === 'top') return [midX(g), g.y];
+  return [midX(g), g.y + g.h];
+}
+
+/* =========================================================================
+   3. SET-UP
+   ========================================================================= */
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE_MS = reduceMotion ? 0 : 600;
+const stage = document.getElementById('stage');
+const svg = d3.select('#diagram');
+const railBody = d3.select('#rail-body');
+const tooltip = d3.select('#tooltip');
+
+if (typeof d3 === 'undefined') {
+  document.getElementById('rail-body').textContent = 'D3 v7 could not be loaded from the CDN. Connect to the network and reload the page.';
+  throw new Error('d3 unavailable');
+}
+
+let selectedId = null;      // currently open element (shelf or module)
+let currentView = 'physical';
+let currentTransform = d3.zoomIdentity;
+let simActive = false, simStage = 0, simTimer = null;
+
+function pts(list) { return list.map(p => p.join(',')).join(' '); }
+
+const defs = svg.append('defs');
+const shadow = defs.append('filter').attr('id', 'cabDepth').attr('x', '-10%').attr('y', '-10%').attr('width', '120%').attr('height', '120%');
+shadow.append('feDropShadow').attr('dx', 0).attr('dy', 0).attr('stdDeviation', 6).attr('flood-color', '#1c2733').attr('flood-opacity', .22);
+const arrow = defs.append('marker').attr('id', 'arrowHead').attr('viewBox', '0 0 10 10').attr('refX', 8).attr('refY', 5)
+  .attr('markerWidth', 7).attr('markerHeight', 7).attr('orient', 'auto-start-reverse');
+arrow.append('path').attr('d', 'M0,0 L10,5 L0,10 Z').attr('fill', 'currentColor');
+
+svg.append('rect').attr('width', 760).attr('height', 1010).attr('x', -230).attr('y', 0).attr('fill', 'var(--paper)');
+const viewport = svg.append('g').attr('id', 'viewport');
+const structureG = viewport.append('g').attr('id', 'structure');
+const elementsG = viewport.append('g').attr('id', 'elements');
+const overlayPower = viewport.append('g').attr('class', 'overlay').attr('id', 'overlay-power');
+const overlaySignal = viewport.append('g').attr('class', 'overlay').attr('id', 'overlay-signal');
+const overlayThermal = viewport.append('g').attr('class', 'overlay').attr('id', 'overlay-thermal');
+const overlayEarth = viewport.append('g').attr('class', 'overlay').attr('id', 'overlay-earth');
+
+/* =========================================================================
+   4. STRUCTURE — cabinet frame, door, U markings, dimensions (not selectable)
+   ========================================================================= */
+
+/* Renders the cabinet enclosure outline with a soft inner-depth shadow. */
+function drawCabinetFrame() {
+  const g = GEO['cabinet'];
+  structureG.append('rect').attr('x', g.x).attr('y', g.y).attr('width', g.w).attr('height', g.h).attr('rx', 6)
+    .attr('fill', 'var(--enclosure)').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1.5).attr('filter', 'url(#cabDepth)');
+  structureG.append('rect').attr('x', g.x + 4).attr('y', g.y + 4).attr('width', g.w - 8).attr('height', g.h - 8).attr('rx', 4)
+    .attr('fill', 'none').attr('stroke', '#d7dde3').attr('stroke-width', 1);
+}
+
+/* Renders the door outline hinged open to the left of the cabinet. */
+function drawDoor() {
+  const d = GEO['door-filter'];
+  const doorX = d.x - 20, doorW = 190, doorTop = 60, doorBot = 940;
+  structureG.append('rect').attr('x', doorX).attr('y', doorTop).attr('width', doorW).attr('height', doorBot - doorTop).attr('rx', 4)
+    .attr('fill', 'none').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1.5);
+  structureG.append('line').attr('x1', doorX + doorW).attr('y1', doorTop).attr('x2', CAB.x).attr('y2', CAB.y)
+    .attr('stroke', 'var(--line)').attr('stroke-width', 1).attr('stroke-dasharray', '3 3');
+  structureG.append('line').attr('x1', doorX + doorW).attr('y1', doorBot).attr('x2', CAB.x).attr('y2', CAB.y + CAB.h)
+    .attr('stroke', 'var(--line)').attr('stroke-width', 1).attr('stroke-dasharray', '3 3');
+  [doorTop, doorBot].forEach(y => structureG.append('circle').attr('cx', CAB.x).attr('cy', y).attr('r', 4)
+    .attr('fill', 'var(--module)').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1));
+  structureG.append('circle').attr('cx', doorX + doorW - 14).attr('cy', (doorTop + doorBot) / 2).attr('r', 5)
+    .attr('fill', 'var(--module)').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1);
+}
+
+/* Renders U rack-unit tick marks alongside the BBU subrack board row. */
+function drawURail() {
+  const g = GEO['ctrl-board-1'];
+  const uH = g.h / 6, x = GEO['rectifier-shelf'].x + IN.w + 4;
+  for (let u = 0; u < 6; u++) {
+    const y = g.y + u * uH;
+    structureG.append('line').attr('x1', x).attr('x2', x + 8).attr('y1', y).attr('y2', y).attr('stroke', 'var(--muted)').attr('stroke-width', 1);
+    structureG.append('text').attr('class', 'captiontext').attr('x', x + 11).attr('y', y + uH / 2 + 3).text('U' + (u + 1));
+  }
+  structureG.append('text').attr('class', 'captiontext').attr('x', x).attr('y', g.y - 8).text('Rack units (top-down)');
+}
+
+/* Renders overall cabinet dimension annotations as a scale reference. */
+function drawDimensions() {
+  const rx = 470;
+  structureG.append('line').attr('x1', rx).attr('y1', CAB.y).attr('x2', rx).attr('y2', CAB.y + CAB.h)
+    .attr('stroke', 'var(--muted)').attr('stroke-width', 1).attr('marker-start', 'url(#arrowHead)').attr('marker-end', 'url(#arrowHead)')
+    .attr('color', 'var(--muted)');
+  structureG.append('text').attr('class', 'captiontext').attr('x', rx + 8).attr('y', CAB.y + CAB.h / 2)
+    .attr('transform', `rotate(90 ${rx + 8} ${CAB.y + CAB.h / 2})`).attr('text-anchor', 'middle').text('\u2248 2000 mm tall (representative)');
+  const by = 968;
+  structureG.append('line').attr('x1', CAB.x).attr('y1', by).attr('x2', CAB.x + CAB.w).attr('y2', by)
+    .attr('stroke', 'var(--muted)').attr('stroke-width', 1).attr('marker-start', 'url(#arrowHead)').attr('marker-end', 'url(#arrowHead)')
+    .attr('color', 'var(--muted)');
+  structureG.append('text').attr('class', 'captiontext').attr('x', CAB.x + CAB.w / 2).attr('y', by + 14).attr('text-anchor', 'middle')
+    .text('\u2248 600 mm wide (representative)');
+}
+
+drawCabinetFrame(); drawDoor(); drawURail(); drawDimensions();
+
+/* =========================================================================
+   5. DRAWING HELPERS FOR ELEMENTS (category-level, reused by many ids)
+   ========================================================================= */
+
+function box(sel, g, fill, stroke) {
+  return sel.append('rect').attr('class', 'part-body').attr('x', g.x).attr('y', g.y).attr('width', g.w).attr('height', g.h).attr('rx', 3)
+    .attr('fill', fill).attr('stroke', stroke || 'var(--module-dark)').attr('stroke-width', 1.5);
+}
+function haloRect(sel, g) { sel.append('rect').attr('class', 'halo').attr('x', g.x - 2).attr('y', g.y - 2).attr('width', g.w + 4).attr('height', g.h + 4).attr('rx', 4); }
+function screws(sel, g) {
+  [[g.x + 5, g.y + 6], [g.x + g.w - 5, g.y + 6], [g.x + 5, g.y + g.h - 6], [g.x + g.w - 5, g.y + g.h - 6]].forEach(p =>
+    sel.append('circle').attr('cx', p[0]).attr('cy', p[1]).attr('r', 2).attr('fill', 'var(--module-dark)'));
+}
+
+/* Renders a shelf's structural frame band behind its modules. */
+function drawShelfFrame(sel, g) {
+  sel.append('rect').attr('class', 'part-body').attr('x', g.x - 6).attr('y', g.y - 6).attr('width', g.w + 12).attr('height', g.h + 12).attr('rx', 4)
+    .attr('fill', 'var(--shelf)').attr('opacity', .12).attr('stroke', 'var(--shelf-dark)').attr('stroke-width', 1);
+  haloRect(sel, { x: g.x - 6, y: g.y - 6, w: g.w + 12, h: g.h + 12 });
+}
+
+/* Renders a generic pluggable board with a card handle and a small LED. */
+function drawBoard(sel, g, ledColour) {
+  box(sel, g, 'var(--module)');
+  sel.append('rect').attr('x', g.x + 4).attr('y', g.y + 6).attr('width', g.w - 8).attr('height', 4).attr('fill', 'var(--module-dark)');
+  sel.append('circle').attr('cx', g.x + g.w / 2).attr('cy', g.y + g.h - 12).attr('r', 3.5).attr('fill', ledColour || 'var(--led-green)').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  screws(sel, g);
+  haloRect(sel, g);
+}
+
+/* Renders a blanking plate: a plain plate with a diagonal hatch, no ports or LEDs. */
+function drawBlank(sel, g) {
+  box(sel, g, '#c7ced5');
+  const p = sel.append('g').attr('clip-path', null);
+  for (let i = -g.h; i < g.w; i += 12) {
+    p.append('line').attr('x1', g.x + i).attr('y1', g.y).attr('x2', g.x + i + g.h).attr('y2', g.y + g.h)
+      .attr('stroke', '#a9b1b9').attr('stroke-width', .75);
+  }
+  screws(sel, g);
+  haloRect(sel, g);
+}
+
+/* Renders the fibre port pair as two small LC connector squares. */
+function drawFibrePorts(sel, g) {
+  box(sel, g, '#dfe6ea');
+  [g.x + g.w * .3, g.x + g.w * .7].forEach(x => sel.append('rect').attr('x', x - 5).attr('y', g.y + 3).attr('width', 10).attr('height', g.h - 6).attr('rx', 1)
+    .attr('fill', 'var(--module-dark)'));
+  haloRect(sel, g);
+}
+
+/* Renders the subrack status LED strip with codes shown as text beside each dot. */
+function drawLedStrip(sel, g, codes) {
+  box(sel, g, '#2b323a', '#171c21');
+  const step = g.w / codes.length;
+  codes.forEach((c, i) => {
+    const cx = g.x + step * (i + .5) - 14, cy = g.y + g.h / 2;
+    sel.append('circle').attr('class', 'led-dot').attr('data-code', c.code).attr('cx', cx).attr('cy', cy).attr('r', 4.5).attr('stroke', '#0d1114').attr('stroke-width', .75);
+    sel.append('text').attr('class', 'captiontext').attr('x', cx + 10).attr('y', cy + 3).attr('fill', '#c9d2da').text(c.code);
+  });
+  haloRect(sel, g);
+}
+
+/* Renders the fan module with a grille circle. */
+function drawFan(sel, g) {
+  box(sel, g, 'var(--module)');
+  sel.append('circle').attr('cx', midX(g)).attr('cy', midY(g) - 6).attr('r', 18).attr('fill', 'none').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1.25);
+  for (let a = 0; a < 3; a++) {
+    const ang = a * 2 * Math.PI / 3;
+    sel.append('path').attr('d', `M${midX(g)},${midY(g) - 6} Q${midX(g) + 14 * Math.cos(ang)},${midY(g) - 6 + 14 * Math.sin(ang)} ${midX(g) + 17 * Math.cos(ang + .6)},${midY(g) - 6 + 17 * Math.sin(ang + .6)}`)
+      .attr('fill', 'none').attr('stroke', 'var(--module-dark)').attr('stroke-width', 1);
+  }
+  screws(sel, g); haloRect(sel, g);
+}
+
+/* Renders the AC input/protection block with a small breaker toggle. */
+function drawAcInput(sel, g) {
+  box(sel, g, 'var(--module)');
+  sel.append('rect').attr('x', midX(g) - 6).attr('y', g.y + 14).attr('width', 12).attr('height', 20).attr('rx', 2).attr('fill', 'var(--module-dark)');
+  sel.append('text').attr('class', 'captiontext').attr('x', midX(g)).attr('y', g.y + g.h - 8).attr('text-anchor', 'middle').text('AC in');
+  screws(sel, g); haloRect(sel, g);
+}
+
+/* Renders one modular rectifier: a narrow bay with a handle and status LED. */
+function drawRectifier(sel, g, ledColour) {
+  box(sel, g, 'var(--module)');
+  sel.append('rect').attr('x', g.x + g.w / 2 - 3).attr('y', g.y + 10).attr('width', 6).attr('height', g.h - 40).attr('rx', 2).attr('fill', 'var(--module-dark)');
+  sel.append('circle').attr('cx', midX(g)).attr('cy', g.y + g.h - 14).attr('r', 4).attr('fill', ledColour || 'var(--led-green)').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  haloRect(sel, g);
+}
+
+/* Renders the rectifier controller with a small display screen. */
+function drawController(sel, g) {
+  box(sel, g, 'var(--module)');
+  sel.append('rect').attr('x', g.x + 3).attr('y', g.y + 12).attr('width', g.w - 6).attr('height', 30).attr('rx', 1).attr('fill', '#1d2530').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  haloRect(sel, g);
+}
+
+/* Renders the copper DC busbar as a distinct warm-toned strip. */
+function drawBusbar(sel, g) {
+  box(sel, g, 'var(--copper)', 'var(--copper-dark)');
+  haloRect(sel, g);
+}
+
+/* Renders one miniature circuit breaker with its labelled toggle. */
+function drawBreaker(sel, g, d) {
+  box(sel, g, d.schedule.normalState === 'Open' ? '#c7ced5' : 'var(--module)');
+  sel.append('rect').attr('x', midX(g) - 5).attr('y', g.y + 5).attr('width', 10).attr('height', 14).attr('rx', 2)
+    .attr('fill', d.schedule.normalState === 'Open' ? '#aab3bc' : 'var(--module-dark)');
+  sel.append('text').attr('class', 'captiontext').attr('x', midX(g)).attr('y', g.y + g.h - 5).attr('text-anchor', 'middle').text(d.schedule.rating);
+  haloRect(sel, g);
+}
+
+/* Renders the low-voltage disconnect contactor with a visible armature. */
+function drawLvd(sel, g) {
+  box(sel, g, 'var(--module)');
+  sel.append('circle').attr('cx', g.x + 16).attr('cy', midY(g)).attr('r', 5).attr('fill', 'var(--led-green)').attr('class', 'lvd-led').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  sel.append('text').attr('class', 'captiontext').attr('x', g.x + 28).attr('y', midY(g) + 4).text('LVD');
+  haloRect(sel, g);
+}
+
+/* Renders the alarm dry-contact terminal block as a row of small screw terminals. */
+function drawAlarmTerminal(sel, g) {
+  box(sel, g, '#dfe6ea');
+  d3.range(6).forEach(i => sel.append('rect').attr('x', g.x + 8 + i * 16).attr('y', g.y + 6).attr('width', 10).attr('height', g.h - 12).attr('fill', 'var(--module-dark)'));
+  haloRect(sel, g);
+}
+
+/* Renders one 12 V VRLA battery block with two terminal posts. */
+function drawBattery(sel, g) {
+  box(sel, g, 'var(--module)');
+  sel.append('rect').attr('x', g.x + 10).attr('y', g.y + 6).attr('width', g.w - 20).attr('height', 8).attr('fill', 'var(--module-dark)');
+  sel.append('circle').attr('cx', g.x + 20).attr('cy', g.y + 20).attr('r', 5).attr('fill', 'var(--dc-pos)').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  sel.append('circle').attr('cx', g.x + g.w - 20).attr('cy', g.y + 20).attr('r', 5).attr('fill', 'var(--dc-neg)').attr('stroke', '#0d1114').attr('stroke-width', .75);
+  sel.append('text').attr('class', 'captiontext').attr('x', midX(g)).attr('y', g.y + g.h - 10).attr('text-anchor', 'middle').text('12 V VRLA');
+  haloRect(sel, g);
+}
+
+/* Renders the inter-cell links as red/black polarity-coded straps between battery terminals. */
+function drawBatteryLinks(sel, g) {
+  const b1 = GEO['battery-1'], b2 = GEO['battery-2'], b3 = GEO['battery-3'], b4 = GEO['battery-4'];
+  const path = `M${b1.x + b1.w - 20},${b1.y + 20} H${b2.x + 20} M${b2.x + b2.w - 20},${b2.y + b2.h - 20 + (b2.h)} `;
+  sel.append('path').attr('class', 'hit').attr('d', `M${b1.x + b1.w - 20},${b1.y + 20} L${b2.x + 20},${b2.y + 20}`)
+    .attr('fill', 'none').attr('stroke', '#000').attr('stroke-opacity', 0).attr('stroke-width', 16);
+  sel.append('line').attr('x1', b1.x + b1.w - 20).attr('y1', b1.y + 20).attr('x2', b2.x + 20).attr('y2', b2.y + 20)
+    .attr('stroke', 'var(--dc-neg)').attr('stroke-width', 4);
+  sel.append('line').attr('x1', b1.x + 20).attr('y1', b1.y + b1.h - 4).attr('x2', b3.x + 20).attr('y2', b3.y + 4)
+    .attr('stroke', 'var(--dc-pos)').attr('stroke-width', 4);
+  sel.append('line').attr('x1', b3.x + b3.w - 20).attr('y1', b3.y + 20).attr('x2', b4.x + 20).attr('y2', b4.y + 20)
+    .attr('stroke', 'var(--dc-neg)').attr('stroke-width', 4);
+  sel.append('rect').attr('class', 'halo').attr('x', g.x).attr('y', g.y).attr('width', g.w).attr('height', g.h).attr('rx', 4);
+}
+
+/* Renders the battery temperature sensor as a small probe clipped to a cell. */
+function drawTempSensor(sel, g) {
+  sel.append('circle').attr('class', 'part-body').attr('cx', midX(g)).attr('cy', midY(g)).attr('r', 6).attr('fill', '#e8c15a').attr('stroke', '#8a6a1d').attr('stroke-width', 1);
+  sel.append('circle').attr('class', 'halo').attr('cx', midX(g)).attr('cy', midY(g)).attr('r', 9).attr('fill', 'none');
+}
+
+/* Renders the copper earth bar with several bonding leads landing on it. */
+function drawEarthBar(sel, g) {
+  box(sel, g, 'var(--copper)', 'var(--copper-dark)');
+  const targets = [GEO['bbu-subrack'], GEO['rectifier-shelf'], GEO['dc-distribution'], GEO['battery-bank']];
+  targets.forEach(t => {
+    sel.append('path').attr('d', `M${g.x},${midY(t)} L${t.x + t.w + 6},${midY(t)}`).attr('fill', 'none')
+      .attr('stroke', '#d8c22a').attr('stroke-width', 2.5).attr('stroke-dasharray', '5 4').attr('opacity', .85);
+  });
+  haloRect(sel, g);
+}
+
+/* Renders the AC-input surge protection device as a small DIN module with an indicator window. */
+function drawSpd(sel, g) {
+  box(sel, g, '#dfe6ea');
+  sel.append('circle').attr('cx', g.x + g.w - 8).attr('cy', midY(g)).attr('r', 3).attr('fill', 'var(--led-green)');
+  haloRect(sel, g);
+}
+
+/* Renders the cable-entry gland plate with several circular gland holes. */
+function drawCableEntry(sel, g) {
+  box(sel, g, '#c7ced5');
+  d3.range(5).forEach(i => sel.append('circle').attr('cx', g.x + 24 + i * 62).attr('cy', midY(g)).attr('r', 6).attr('fill', '#8f99a3').attr('stroke', 'var(--module-dark)').attr('stroke-width', .75));
+  haloRect(sel, g);
+}
+
+/* Renders a louvred vent strip (shared by intake and exhaust). */
+function drawVent(sel, g) {
+  box(sel, g, '#dfe6ea');
+  d3.range(6).forEach(i => sel.append('line').attr('x1', g.x + 6).attr('x2', g.x + g.w - 6).attr('y1', g.y + 2 + i * (g.h - 4) / 5).attr('y2', g.y + 2 + i * (g.h - 4) / 5)
+    .attr('stroke', 'var(--module-dark)').attr('stroke-width', .75));
+  haloRect(sel, g);
+}
+
+/* Renders the door filter as a louvred panel inset into the open door. */
+function drawDoorFilter(sel, g) {
+  box(sel, g, '#dfe6ea');
+  d3.range(9).forEach(i => sel.append('line').attr('x1', g.x + 6).attr('x2', g.x + g.w - 6).attr('y1', g.y + 8 + i * (g.h - 16) / 8).attr('y2', g.y + 8 + i * (g.h - 16) / 8)
+    .attr('stroke', 'var(--module-dark)').attr('stroke-width', .75));
+  haloRect(sel, g);
+}
+
+/* =========================================================================
+   6. DATA JOIN — one focusable group per element (shelves + modules)
+   ========================================================================= */
+
+const SHELVES = ELEMENTS.filter(e => e.level === 'shelf');
+const MODULES = ELEMENTS.filter(e => e.level === 'module');
+
+const shelfSel = elementsG.selectAll('g.shelf').data(SHELVES, d => d.id).join('g')
+  .attr('class', 'el shelf').attr('id', d => 'el-' + d.id)
+  .each(function (d) { drawShelfFrame(d3.select(this), GEO[d.id]); });
+
+const moduleSel = elementsG.selectAll('g.module').data(MODULES, d => d.id).join('g')
+  .attr('class', 'el module').attr('id', d => 'el-' + d.id)
+  .each(function (d) {
+    const sel = d3.select(this), g = GEO[d.id];
+    switch (d.id) {
+      case 'ctrl-board-1': case 'ctrl-board-2': drawBoard(sel, g); break;
+      case 'backhaul-board': drawBoard(sel, g, 'var(--led-amber)'); break;
+      case 'fibre-port': drawFibrePorts(sel, g); break;
+      case 'vacant-slot-bbu': case 'rect-vacant': drawBlank(sel, g); break;
+      case 'bbu-led-cluster': drawLedStrip(sel, g, [{ code:'RUN' }, { code:'ALM' }, { code:'ACT' }]); break;
+      case 'bbu-fan': drawFan(sel, g); break;
+      case 'ac-input': drawAcInput(sel, g); break;
+      case 'rect-1': case 'rect-2': case 'rect-3': drawRectifier(sel, g); break;
+      case 'rect-controller': drawController(sel, g); break;
+      case 'dc-busbar': drawBusbar(sel, g); break;
+      case 'lvd-contactor': drawLvd(sel, g); break;
+      case 'alarm-terminal': drawAlarmTerminal(sel, g); break;
+      case 'battery-1': case 'battery-2': case 'battery-3': case 'battery-4': drawBattery(sel, g); break;
+      case 'battery-links': drawBatteryLinks(sel, g); break;
+      case 'battery-temp-sensor': drawTempSensor(sel, g); break;
+      default: if (d.kind === 'breaker') drawBreaker(sel, g, d); break;
+    }
+  });
+
+// side-wall shelf-level elements get their own dedicated renderers instead of the generic frame
+shelfSel.filter(d => d.id === 'earth-bar').each(function (d) { drawEarthBar(d3.select(this), GEO[d.id]); });
+shelfSel.filter(d => d.id === 'spd').each(function (d) { drawSpd(d3.select(this), GEO[d.id]); });
+shelfSel.filter(d => d.id === 'cable-entry').each(function (d) { drawCableEntry(d3.select(this), GEO[d.id]); });
+shelfSel.filter(d => d.id === 'door-filter').each(function (d) { drawDoorFilter(d3.select(this), GEO[d.id]); });
+shelfSel.filter(d => d.id === 'intake-vent' || d.id === 'exhaust-vent').each(function (d) { drawVent(d3.select(this), GEO[d.id]); });
+
+const allSel = elementsG.selectAll('g.el');
+
+allSel
+  .attr('role', 'button')
+  .attr('aria-label', d => ariaFor(d))
+  .each(function (d) { d3.select(this).append('title').text(d.name); })
+  .on('mouseenter', (e, d) => showTooltip(e, d))
+  .on('mousemove', (e, d) => positionTooltip(e))
+  .on('mouseleave', hideTooltip)
+  .on('focus', (e, d) => showTooltip(e, d, true))
+  .on('blur', hideTooltip)
+  .on('click', (e, d) => { e.stopPropagation(); selectElement(d.id, true); })
+  .on('keydown', (e, d) => onElKeydown(e, d));
+
+function ariaFor(d) {
+  let label = d.name + '. ' + d.function;
+  const gi = GROUP_OF[d.id];
+  if (gi) label += ` (${labelFor(gi.group)} ${gi.index + 1} of ${gi.size})`;
+  return label;
+}
+function labelFor(group) {
+  return { 'bbu-boards':'board', 'rectifiers':'rectifier module', 'breakers':'breaker', 'batteries':'battery' }[group] || 'item';
+}
+
+/* Sets up roving tabindex: only the first member of each group is a Tab stop. */
+function initTabindex() {
+  allSel.attr('tabindex', function (d) {
+    const gi = GROUP_OF[d.id];
+    if (!gi) return 0;
+    return gi.index === 0 ? 0 : -1;
+  });
+}
+initTabindex();
+
+function onElKeydown(e, d) {
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); selectElement(d.id, true); return; }
+  if (e.key === 'Escape') { e.preventDefault(); stepUp(); return; }
+  const gi = GROUP_OF[d.id];
+  if (!gi) return;
+  let next = null;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (gi.index + 1) % gi.size;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (gi.index - 1 + gi.size) % gi.size;
+  if (next === null) return;
+  e.preventDefault();
+  const nextId = GROUPS[gi.group][next];
+  allSel.filter(m => GROUP_OF[m.id] && GROUP_OF[m.id].group === gi.group).attr('tabindex', m => GROUP_OF[m.id].index === next ? 0 : -1);
+  const node = document.getElementById('el-' + nextId);
+  if (node) node.focus();
+  showTooltip({ target: node, clientX: node.getBoundingClientRect().left + 20, clientY: node.getBoundingClientRect().top }, BY_ID.get(nextId), true);
+}
+
+/* =========================================================================
+   7. TOOLTIP (hover / focus) vs PANEL (click / Enter)
+   ========================================================================= */
+
+function showTooltip(e, d, fromKeyboard) {
+  tooltip.html(`<b>${d.name}</b>${d.function}`);
+  positionTooltip(e);
+  tooltip.classed('show', true);
+}
+function positionTooltip(e) {
+  const rect = stage.getBoundingClientRect();
+  const x = (e.clientX - rect.left);
+  const y = (e.clientY - rect.top);
+  tooltip.style('left', x + 'px').style('top', Math.max(28, y - 10) + 'px');
+}
+function hideTooltip() { tooltip.classed('show', false); }
+
+/* =========================================================================
+   8. ZOOM, SELECTION, BREADCRUMB
+   ========================================================================= */
+
+const zoom = d3.zoom().scaleExtent([1, 4]).filter(e => e.type === 'mousedown')
+  .on('zoom', e => { currentTransform = e.transform; viewport.attr('transform', e.transform); });
+svg.call(zoom);
+
+function zoomToNode(node) {
+  const b = node.getBBox();
+  const pad = 1.7;
+  const k = Math.max(1, Math.min(4, Math.min(760 / (b.width * pad), 1010 / (b.height * pad))));
+  const tx = 760 / 2 - k * (b.x + b.width / 2) - 230 + (-(-230));
+  const cx = -230 + 760 / 2, cy = 1010 / 2;
+  const tX = cx - k * (b.x + b.width / 2);
+  const tY = cy - k * (b.y + b.height / 2);
+  svg.transition().duration(EASE_MS).ease(d3.easeCubicOut).call(zoom.transform, d3.zoomIdentity.translate(tX, tY).scale(k));
+}
+
+function selectElement(id, animate) {
+  selectedId = id;
+  const d = BY_ID.get(id);
+  const ancestors = new Set(ancestorsOf(id));
+  stage.classList.add('has-selection');
+  allSel.classed('is-selected', x => x.id === id).classed('is-ancestor', x => ancestors.has(x.id));
+  hideTooltip();
+  const node = document.getElementById('el-' + id);
+  if (node) { if (animate) zoomToNode(node); node.focus({ preventScroll: true }); }
+  renderBreadcrumb(id);
+  renderRail(d);
+  syncScheduleSelection(id);
+}
+
+function stepUp() {
+  if (!selectedId) return;
+  const d = BY_ID.get(selectedId);
+  if (d.parent && d.parent !== 'cabinet') selectElement(d.parent, true);
+  else if (d.parent === 'cabinet') deselect();
+  else deselect();
+}
+
+function deselect() {
+  selectedId = null;
+  stage.classList.remove('has-selection');
+  allSel.classed('is-selected', false).classed('is-ancestor', false);
+  svg.transition().duration(EASE_MS).ease(d3.easeCubicOut).call(zoom.transform, d3.zoomIdentity);
+  renderBreadcrumb(null);
+  renderRail(null);
+  syncScheduleSelection(null);
+}
+
+let downAt = null;
+svg.on('mousedown', e => { downAt = [e.clientX, e.clientY]; });
+svg.on('click', e => {
+  if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  if (selectedId) deselect();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && selectedId) stepUp(); });
+document.getElementById('reset-view').addEventListener('click', deselect);
+
+function renderBreadcrumb(id) {
+  const nav = d3.select('#crumbs');
+  nav.html('');
+  const chain = id ? [...ancestorsOf(id).filter(a => a !== null), id] : [];
+  const segs = [{ id: null, name: 'Cabinet' }, ...chain.filter(x => x !== 'cabinet').map(x => ({ id: x, name: BY_ID.get(x).name }))];
+  segs.forEach((s, i) => {
+    if (i > 0) nav.append('span').attr('class', 'crumb-sep').text('\u203a');
+    nav.append('button').attr('class', 'crumb').attr('type', 'button')
+      .attr('aria-current', i === segs.length - 1 ? 'true' : null)
+      .text(s.name)
+      .on('click', () => { if (s.id) selectElement(s.id, true); else deselect(); });
+  });
+}
+renderBreadcrumb(null);
+
+/* =========================================================================
+   9. SIDE RAIL
+   ========================================================================= */
+
+function section(container, heading, build) { container.append('h3').text(heading); build(container); }
+
+function renderRail(d) {
+  railBody.html('');
+  if (!d) {
+    railBody.append('div').attr('class', 'eyebrow').text('Overview');
+    railBody.append('h2').text('Start here');
+    railBody.append('p').attr('class', 'lede').text(ORIENTATION.lede);
+    railBody.append('h3').text('Why the stack is ordered this way');
+    railBody.append('p').text(ORIENTATION.rationale);
+    railBody.append('p').attr('class', 'caption').text(ORIENTATION.keyboard);
+    section(railBody, 'DC distribution — breaker schedule', renderSchedule);
+    railBody.append('div').attr('class', 'note').text(ORIENTATION.disclaimer);
+    return;
+  }
+  railBody.append('div').attr('class', 'eyebrow').text(d.level === 'shelf' ? 'Shelf detail' : 'Module detail');
+  railBody.append('h2').text(d.name);
+  railBody.append('p').attr('class', 'lede').text(d.function);
+  if (d.safetyNote) railBody.append('div').attr('class', 'safety').text('\u26a0 ' + d.safetyNote);
+  section(railBody, 'In', c => c.append('p').text(d.inputs));
+  section(railBody, 'Out', c => c.append('p').text(d.outputs));
+  section(railBody, 'Why it sits here', c => c.append('p').text(d.whyHere));
+  section(railBody, 'How you recognise it on site', c => c.append('p').text(d.onSiteAppearance));
+  section(railBody, 'Typical values', c => {
+    c.append('ul').selectAll('li').data(d.typicalValues).join('li').text(x => x);
+    c.append('p').attr('class', 'caption').style('margin-top', '6px').text('Typical and vendor-dependent \u2014 illustrative ranges, not manufacturer specifications.');
+  });
+  section(railBody, 'Common faults', c => {
+    c.selectAll('div.fault-item').data(d.commonFaults).join('div').attr('class', 'fault-item')
+      .call(sel => { sel.append('div').attr('class', 'sym').text(x => x.symptom); sel.append('div').attr('class', 'fix').text(x => '\u2192 ' + x.check); });
+  });
+  section(railBody, 'Also called', c => c.append('p').text(d.vendorAliases));
+  if (d.id === 'dc-distribution' || d.kind === 'breaker') section(railBody, 'Breaker schedule', renderSchedule);
+}
+
+/* =========================================================================
+   10. BREAKER SCHEDULE TABLE
+   ========================================================================= */
+
+function renderSchedule(container) {
+  const rows = ELEMENTS.filter(e => e.schedule).sort((a, b) => a.schedule.position - b.schedule.position);
+  const table = container.append('table').attr('class', 'schedule').attr('id', 'schedule-table');
+  table.append('caption').text('Position \u00b7 rating \u00b7 load fed \u00b7 normal state. Click a row to highlight it in the diagram.');
+  const thead = table.append('thead').append('tr');
+  ['Pos', 'Rating', 'Load fed', 'Normal state'].forEach(h => thead.append('th').text(h));
+  const tbody = table.append('tbody');
+  tbody.selectAll('tr').data(rows).join('tr')
+    .attr('class', d => 'schedule-row' + (d.schedule.normalState === 'Open' ? ' spare' : ''))
+    .attr('id', d => 'row-' + d.id)
+    .attr('tabindex', 0)
+    .attr('role', 'button')
+    .attr('aria-label', d => `Breaker ${d.schedule.position}, ${d.schedule.rating}, feeds ${d.schedule.loadFed}, normally ${d.schedule.normalState}`)
+    .on('click', (e, d) => selectElement(d.id, true))
+    .on('keydown', (e, d) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectElement(d.id, true); } })
+    .call(sel => {
+      sel.append('td').text(d => d.schedule.position);
+      sel.append('td').text(d => d.schedule.rating);
+      sel.append('td').text(d => d.schedule.loadFed);
+      sel.append('td').text(d => d.schedule.normalState);
+    });
+  syncScheduleSelection(selectedId);
+}
+function syncScheduleSelection(id) {
+  d3.selectAll('.schedule-row').classed('row-selected', d => d && d.id === id);
+}
+
+/* =========================================================================
+   11. SAFETY PANEL
+   ========================================================================= */
+
+let safetyOpen = false;
+document.getElementById('safety-toggle').addEventListener('click', () => {
+  safetyOpen = !safetyOpen;
+  if (safetyOpen) {
+    const notes = ELEMENTS.filter(e => e.safetyNote);
+    railBody.html('');
+    railBody.append('div').attr('class', 'eyebrow').text('Safety');
+    railBody.append('h2').text('Hazards in this cabinet');
+    railBody.append('p').attr('class', 'lede').text('Collected from every element below. Read this before opening a live cabinet, not after.');
+    notes.forEach(n => {
+      railBody.append('div').attr('class', 'safety').html(`<b>${n.name}:</b> ${n.safetyNote}`.replace('<b>', '<b style="display:block">'));
+    });
+    d3.select('#crumbs').html('');
+    d3.select('#crumbs').append('button').attr('class', 'crumb').attr('aria-current', 'true').text('Safety notes');
+  } else {
+    renderBreadcrumb(selectedId);
+    renderRail(selectedId ? BY_ID.get(selectedId) : null);
+  }
+});
+
+/* =========================================================================
+   12. LAYERED VIEWS
+   ========================================================================= */
+
+/* Draws the power-flow overlay: AC in through SPD, rectifiers, busbar, breakers out, battery reservoir. */
+function buildPowerOverlay() {
+  const g = overlayPower;
+  const ac = GEO['ac-input'], bus = GEO['dc-busbar'], bank = GEO['battery-bank'];
+  const rects = ['rect-1', 'rect-2', 'rect-3'].map(id => GEO[id]);
+  const acTop = edge(ac, 'top');
+  g.append('path').attr('id', 'flow-ac-rect').attr('class', 'flow-arrow').attr('color', 'var(--power-flow)')
+    .attr('d', `M${acTop[0]},${GEO['spd'].y} L${acTop[0]},${ac.y}`).attr('stroke', 'var(--power-flow)').attr('stroke-width', 2.5);
+  rects.forEach(r => g.append('path').attr('class', 'flow-arrow pf-rect').attr('color', 'var(--power-flow)')
+    .attr('d', `M${midX(ac)},${midY(ac)} L${midX(r)},${r.y + r.h}`).attr('stroke', 'var(--power-flow)').attr('stroke-width', 2).attr('opacity', .8));
+  g.append('path').attr('class', 'flow-arrow pf-bus').attr('color', 'var(--power-flow)')
+    .attr('d', `M${midX(rects[1])},${rects[1].y + rects[1].h} L${midX(rects[1])},${bus.y}`).attr('stroke', 'var(--power-flow)').attr('stroke-width', 2.5);
+  for (let i = 0; i < 8; i++) {
+    const br = GEO['breaker-' + (i + 1)];
+    g.append('path').attr('class', 'flow-arrow pf-load').attr('color', 'var(--power-flow)')
+      .attr('d', `M${midX(bus)},${bus.y + bus.h} L${midX(br)},${br.y}`).attr('stroke', 'var(--power-flow)').attr('stroke-width', 1.25).attr('opacity', .55);
+  }
+  g.append('path').attr('id', 'flow-bus-batt').attr('class', 'flow-arrow').attr('color', 'var(--power-flow)')
+    .attr('d', `M${midX(bus)},${bus.y + bus.h} L${midX(bank)},${bank.y}`).attr('stroke', 'var(--power-flow)').attr('stroke-width', 2.5).attr('stroke-dasharray', '2 5');
+  g.append('text').attr('class', 'captiontext').attr('x', midX(bank) + 8).attr('y', bank.y + 14).attr('fill', 'var(--power-flow)')
+    .text('Battery: parallel reservoir');
+  g.append('text').attr('class', 'captiontext').attr('x', 200).attr('y', 40).attr('fill', 'var(--power-flow)')
+    .text('AC mains \u2192 SPD \u2192 rectifiers \u2192 DC bus \u2192 breakers \u2192 loads');
+}
+
+/* Draws the signal & data overlay: fibre up-tower, backhaul out, alarm dry contacts. */
+function buildSignalOverlay() {
+  const g = overlaySignal;
+  const fp = GEO['fibre-port'], bh = GEO['backhaul-board'], al = GEO['alarm-terminal'];
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--signal-flow)')
+    .attr('d', `M${midX(fp)},${fp.y} L${midX(fp)},20`).attr('stroke', 'var(--signal-flow)').attr('stroke-width', 2.5);
+  g.append('text').attr('class', 'captiontext').attr('x', midX(fp) + 8).attr('y', 30).attr('fill', 'var(--signal-flow)').text('Fibre up-tower to RRU');
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--signal-flow)')
+    .attr('d', `M${bh.x + bh.w},${midY(bh)} L${520},${midY(bh)}`).attr('stroke', 'var(--signal-flow)').attr('stroke-width', 2.5);
+  g.append('text').attr('class', 'captiontext').attr('x', bh.x + bh.w + 6).attr('y', midY(bh) - 8).attr('fill', 'var(--signal-flow)').text('Backhaul to core network');
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--signal-flow)')
+    .attr('d', `M${al.x + al.w},${midY(al)} L520,${midY(al)}`).attr('stroke', 'var(--signal-flow)').attr('stroke-width', 2).attr('stroke-dasharray', '4 4');
+  g.append('text').attr('class', 'captiontext').attr('x', al.x + al.w + 6).attr('y', midY(al) - 8).attr('fill', 'var(--signal-flow)').text('Alarm dry contacts to SCADA/NOC');
+}
+
+/* Draws the thermal & airflow overlay: intake low, exhaust high, filter position. */
+function buildThermalOverlay() {
+  const g = overlayThermal;
+  const iv = GEO['intake-vent'], ev = GEO['exhaust-vent'], df = GEO['door-filter'];
+  const path = `M${midX(iv)},${iv.y} C${midX(iv)},700 ${midX(ev)},450 ${midX(ev)},${ev.y + ev.h}`;
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--thermal-cold)')
+    .attr('d', path).attr('stroke', 'var(--thermal-cold)').attr('stroke-width', 3).attr('fill', 'none');
+  g.append('text').attr('class', 'captiontext').attr('x', midX(iv) + 10).attr('y', iv.y - 6).attr('fill', 'var(--thermal-cold)').text('Cool intake, drawn in low');
+  g.append('text').attr('class', 'captiontext').attr('x', midX(ev) + 10).attr('y', ev.y + 22).attr('fill', 'var(--thermal-hot)').text('Warm exhaust, leaves at the roof');
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--thermal-cold)')
+    .attr('d', `M${midX(df)},${df.y + df.h} C${midX(df)},500 60,300 ${midX(iv)},${iv.y}`).attr('stroke', 'var(--thermal-cold)').attr('stroke-width', 2).attr('stroke-dasharray', '3 4').attr('fill', 'none');
+  g.append('text').attr('class', 'captiontext').attr('x', df.x - 4).attr('y', df.y - 10).attr('fill', 'var(--thermal-cold)').text('Door filter: keep clear');
+  g.append('text').attr('class', 'captiontext').attr('x', 90).attr('y', 990).attr('fill', 'var(--thermal-hot)')
+    .text('A blocked filter starves this whole path and drives summer rectifier derating.');
+}
+
+/* Draws the earthing overlay: bonding leads from every shelf to the earth bar and out to the mat. */
+function buildEarthOverlay() {
+  const g = overlayEarth;
+  const eb = GEO['earth-bar'];
+  [GEO['bbu-subrack'], GEO['rectifier-shelf'], GEO['dc-distribution'], GEO['battery-bank']].forEach(t => {
+    g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--earth-flow)')
+      .attr('d', `M${t.x + t.w},${midY(t)} L${eb.x},${midY(t)}`).attr('stroke', 'var(--earth-flow)').attr('stroke-width', 2.5);
+  });
+  g.append('path').attr('class', 'flow-arrow').attr('color', 'var(--earth-flow)')
+    .attr('d', `M${midX(eb)},${eb.y + eb.h} L${midX(eb)},${eb.y + eb.h + 30}`).attr('stroke', 'var(--earth-flow)').attr('stroke-width', 3);
+  g.append('text').attr('class', 'captiontext').attr('x', midX(eb) - 60).attr('y', eb.y + eb.h + 46).attr('fill', 'var(--earth-flow)').text('Out to the site earth mat');
+}
+
+buildPowerOverlay(); buildSignalOverlay(); buildThermalOverlay(); buildEarthOverlay();
+
+function setView(view) {
+  currentView = view;
+  d3.selectAll('.view-group .btn').attr('aria-pressed', function () { return this.dataset.view === view ? 'true' : 'false'; });
+  overlayPower.classed('active', view === 'power');
+  overlaySignal.classed('active', view === 'signal');
+  overlayThermal.classed('active', view === 'thermal');
+  overlayEarth.classed('active', view === 'earth');
+  canvas.style.display = (view === 'power' && !reduceMotion) ? 'block' : 'none';
+}
+d3.selectAll('.view-group .btn').on('click', function () { setView(this.dataset.view); });
+setView('physical');
+
+/* =========================================================================
+   13. MAINS-FAILURE SIMULATION
+   ========================================================================= */
+
+const simbar = document.getElementById('simbar');
+const simToggle = document.getElementById('sim-toggle');
+const simScrub = document.getElementById('sim-scrub');
+const simPlay = document.getElementById('sim-play');
+if (reduceMotion) simPlay.disabled = true;
+
+simToggle.addEventListener('click', () => {
+  simActive = !simActive;
+  simToggle.setAttribute('aria-pressed', String(simActive));
+  simbar.hidden = !simActive;
+  if (simActive) { setView('power'); applySimStage(0); } else { stopPlay(); clearSimVisuals(); setView('physical'); }
+});
+
+function applySimStage(i) {
+  simStage = i;
+  simScrub.value = i;
+  const s = SIM_STAGES[i];
+  document.getElementById('sim-stagelabel').textContent = s.name;
+  document.getElementById('sim-time').textContent = 't = ' + s.t + ' s';
+  document.getElementById('sim-volts').textContent = 'Bus ' + s.busV.toFixed(1) + ' V';
+  document.getElementById('sim-alarm').textContent = 'Alarm: ' + s.alarm;
+  document.getElementById('sim-action').textContent = s.action;
+
+  d3.selectAll('#el-rect-1, #el-rect-2, #el-rect-3')
+    .classed('fault-glow', s.rectFault).classed('level-alarm', s.rectFault);
+  d3.selectAll('#el-rect-1 .led-dot, #el-rect-2 circle, #el-rect-3 circle');
+  elementsG.selectAll('.el.module').filter(d => ['rect-1','rect-2','rect-3'].includes(d.id))
+    .select('circle').attr('fill', s.rectFault ? 'var(--led-off)' : 'var(--led-green)');
+  d3.select('#el-lvd-contactor').classed('fault-glow', s.lvdTrip).classed('level-alarm', s.lvdTrip);
+  d3.select('#el-lvd-contactor .lvd-led').attr('fill', s.lvdTrip ? 'var(--led-red)' : 'var(--led-green)');
+  d3.select('#el-alarm-terminal').classed('fault-glow', s.alarm !== 'None').classed('level-warning', s.alarm !== 'None' && !s.lvdTrip).classed('level-alarm', s.lvdTrip);
+
+  activeFlows.acRect = !s.rectFault;
+  activeFlows.busBatt = s.battActive ? 'discharge' : 'charge';
+  activeFlows.busLoad = !s.lvdTrip;
+}
+function clearSimVisuals() {
+  elementsG.selectAll('.fault-glow').classed('fault-glow', false).classed('level-alarm', false).classed('level-warning', false);
+  elementsG.selectAll('.el.module').filter(d => ['rect-1','rect-2','rect-3'].includes(d.id)).select('circle').attr('fill', 'var(--led-green)');
+  d3.select('#el-lvd-contactor .lvd-led').attr('fill', 'var(--led-green)');
+  activeFlows.acRect = true; activeFlows.busBatt = 'charge'; activeFlows.busLoad = true;
+}
+function stopPlay() { if (simTimer) { clearTimeout(simTimer); simTimer = null; } simPlay.textContent = 'Play'; }
+
+simScrub.addEventListener('input', () => { stopPlay(); applySimStage(+simScrub.value); });
+document.getElementById('sim-fwd').addEventListener('click', () => { stopPlay(); applySimStage(Math.min(SIM_STAGES.length - 1, simStage + 1)); });
+document.getElementById('sim-back').addEventListener('click', () => { stopPlay(); applySimStage(Math.max(0, simStage - 1)); });
+simPlay.addEventListener('click', () => {
+  if (reduceMotion) return;
+  if (simTimer) { stopPlay(); return; }
+  simPlay.textContent = 'Pause';
+  let i = simStage >= SIM_STAGES.length - 1 ? 0 : simStage;
+  applySimStage(i);
+  const step = () => {
+    if (i >= SIM_STAGES.length - 1) { stopPlay(); return; }
+    const wait = (SIM_STAGES[i + 1].t - SIM_STAGES[i].t) * 1000;
+    simTimer = setTimeout(() => { i++; applySimStage(i); step(); }, wait);
+  };
+  step();
+});
+
+/* =========================================================================
+   14. CANVAS OVERLAY — power-flow current particles only
+   ========================================================================= */
+
+const canvas = document.getElementById('flow');
+const ctx = canvas.getContext('2d');
+let viewT = { s: 1, ox: 0, oy: 0 };
+const activeFlows = { acRect: true, busBatt: 'charge', busLoad: true };
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+  canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = Math.min(r.width / 760, r.height / 1010);
+  viewT = { s, ox: (r.width - 760 * s) / 2, oy: (r.height - 1010 * s) / 2 };
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+const acG = GEO['ac-input'], busG = GEO['dc-busbar'], bankG = GEO['battery-bank'];
+const rectG = ['rect-1', 'rect-2', 'rect-3'].map(id => GEO[id]);
+const P = {
+  acRect: rectG.map(r => [[midX(acG), midY(acG)], [midX(r), r.y + r.h]]),
+  busBatt: [[midX(busG), busG.y + busG.h], [midX(bankG), bankG.y]],
+  busLoad: d3.range(8).map(i => { const br = GEO['breaker-' + (i + 1)]; return [[midX(busG), busG.y + busG.h], [midX(br), br.y]]; })
+};
+let particles = [];
+function seedParticles() {
+  particles = [];
+  P.acRect.forEach(seg => particles.push({ seg, t: Math.random(), speed: .006, kind: 'acRect' }));
+  particles.push({ seg: P.busBatt, t: Math.random(), speed: .004, kind: 'busBatt' });
+  P.busLoad.forEach(seg => particles.push({ seg, t: Math.random(), speed: .005, kind: 'busLoad' }));
+}
+seedParticles();
+
+function toScreen(x, y) {
+  const k = currentTransform.k, tx = currentTransform.x, ty = currentTransform.y;
+  return [viewT.ox + viewT.s * (k * x + tx + 230), viewT.oy + viewT.s * (k * y + ty)];
+}
+
+function frame() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (currentView === 'power' && simbar) {
+    particles.forEach(p => {
+      let active = true, reverse = false, colour = getComputedStyle(document.documentElement).getPropertyValue('--power-flow');
+      if (p.kind === 'acRect') active = activeFlows.acRect;
+      if (p.kind === 'busLoad') active = activeFlows.busLoad;
+      if (p.kind === 'busBatt') { active = true; reverse = activeFlows.busBatt === 'discharge'; }
+      if (!active) return;
+      p.t += p.speed * (reverse ? -1 : 1);
+      if (p.t > 1) p.t -= 1; if (p.t < 0) p.t += 1;
+      const [a, b] = p.seg;
+      const x = a[0] + (b[0] - a[0]) * p.t, y = a[1] + (b[1] - a[1]) * p.t;
+      const [sx, sy] = toScreen(x, y);
+      ctx.beginPath(); ctx.arc(sx, sy, Math.max(1.6, 2.2 * viewT.s * currentTransform.k), 0, Math.PI * 2);
+      ctx.fillStyle = colour; ctx.globalAlpha = .85; ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================================
+   15. START
+   ========================================================================= */
+
+renderRail(null);
+renderBreadcrumb(null);
+clearSimVisuals();
+
+if (!reduceMotion) {
+  elementsG.classed('pulse-once', true);
+  setTimeout(() => elementsG.classed('pulse-once', false), 1800);
+  requestAnimationFrame(frame);
+} else {
+  canvas.style.display = 'none';
+}
+</script>
+</body>
+</html>
