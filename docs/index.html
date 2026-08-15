@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTE Field Reference — Illustrated Site Guide</title>
+<style>
+:root{
+  --bg:#0E1620; --panel:#141E2A; --panel-2:#182432; --line:#25384A;
+  --text:#E7EDF4; --text-dim:#93A4B8; --text-faint:#5D7085;
+  --blue:#5FA3E0; --blue-fill:rgba(61,139,214,0.14);
+  --orange:#E69A55; --orange-fill:rgba(217,122,46,0.14);
+  --accent:#A78BFA; --glow:#F5C97A;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"Consolas","Menlo",monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+header{padding:44px 22px 22px 22px; border-bottom:1px solid var(--line); background:linear-gradient(180deg, rgba(61,139,214,0.07), transparent);}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--text-faint); text-transform:uppercase; margin-bottom:8px;}
+h1{font-size:28px; margin:0 0 10px 0; font-weight:650; letter-spacing:-0.01em; max-width:720px;}
+header p.lede{color:var(--text-dim); font-size:14.5px; line-height:1.6; max-width:640px; margin:0;}
+main{max-width:1180px; margin:0 auto; padding:34px 22px 60px 22px;}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;}
+a.card{
+  display:block; text-decoration:none; color:inherit; background:var(--panel);
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  transition:border-color .15s, transform .15s;
+}
+a.card:hover{border-color:var(--blue); transform:translateY(-2px);}
+a.card:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+.thumb{height:150px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--line);}
+.card-body{padding:16px 18px 18px 18px;}
+.card-kicker{font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:5px;}
+.card-title{font-size:16px; font-weight:650; margin-bottom:6px; letter-spacing:-0.01em;}
+.card-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55;}
+.card-cta{margin-top:12px; font-family:var(--mono); font-size:11px; color:var(--blue); letter-spacing:0.03em;}
+.tagrow{display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;}
+.tag{font-family:var(--mono); font-size:9.5px; padding:2px 7px; border-radius:4px; letter-spacing:0.05em;}
+.tag.digital{background:var(--blue-fill); color:var(--blue);}
+.tag.analogue{background:var(--orange-fill); color:var(--orange);}
+footer{padding:20px 22px; border-top:1px solid var(--line); font-family:var(--mono); font-size:10.5px; color:var(--text-faint); text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">O&amp;M field reference · illustrated site guide</div>
+  <h1>LTE Macro Site, Illustrated</h1>
+  <p class="lede">Four code-rendered technical diagrams covering the site from the signal itself down to the hardware that carries it &mdash; built with D3.js, no image assets. Click through to any diagram for a labelled, interactive walkthrough.</p>
+</header>
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+<footer>All diagrams are stylised technical illustrations for field orientation &mdash; not engineering drawings or vendor specifications.</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+const PAGES = [
+  { href:'lte-signal-chain.html', kicker:'Signal path', title:'The LTE Signal Chain',
+    desc:'IP packet \u2192 baseband IQ samples \u2192 fibre \u2192 analogue RF \u2192 radiated beam \u2192 handset, on two tracks: what the signal is, and what box it lives in.',
+    tags:['digital','analogue'], icon:'chain' },
+  { href:'lte-site-isometric.html', kicker:'Site elevation', title:'Macro Site, Isometric View',
+    desc:'A 45 m tower with three sectors at 0/120/240\u00b0, tower-top RRUs, the cable ladder down to the cabinet, and the buried earth ring.',
+    tags:['analogue'], icon:'tower' },
+  { href:'rru-field-guide.html', kicker:'Hardware close-up', title:'RRU Field Guide',
+    desc:'What is actually on the box mounted behind the antenna \u2014 heat-sink fins, fibre and coax connectors, status LEDs, and the pipe mount.',
+    tags:['analogue'], icon:'rru' },
+  { href:'cabinet-interior.html', kicker:'Hardware cutaway', title:'Cabinet Interior',
+    desc:'Inside the outdoor cabinet: BBU subrack, rectifier shelf, DC distribution and breakers, standby batteries, and the earth bar.',
+    tags:['digital'], icon:'cabinet' },
+];
+
+function drawIcon(svg, type){
+  const s = d3.select(svg);
+  const c = strokeVar('--blue'), o = strokeVar('--orange'), dim = strokeVar('--text-dim');
+  const g = s.append('g').attr('transform','translate(70,60)');
+  if (type === 'chain'){
+    [-48,-16,16,48].forEach((x,i)=>{
+      g.append('rect').attr('x',x-12).attr('y',-12).attr('width',24).attr('height',24).attr('rx',4)
+        .attr('fill','none').attr('stroke', i<2? c : o).attr('stroke-width',1.6);
+    });
+    [-32,0,32].forEach(x=>{
+      g.append('path').attr('d',`M ${x-4} 0 L ${x+4} 0`).attr('stroke',dim).attr('stroke-width',1.4).attr('marker-end','url(#arrIco)');
+    });
+    const defs = s.append('defs');
+    const m = defs.append('marker').attr('id','arrIco').attr('viewBox','0 0 8 8').attr('refX',6).attr('refY',4).attr('markerWidth',5).attr('markerHeight',5).attr('orient','auto');
+    m.append('path').attr('d','M0 0 L8 4 L0 8 z').attr('fill',dim);
+  } else if (type === 'tower'){
+    g.append('line').attr('x1',0).attr('y1',-46).attr('x2',0).attr('y2',34).attr('stroke',dim).attr('stroke-width',2);
+    for(let y=-40;y<30;y+=10){
+      g.append('line').attr('x1',-6).attr('y1',y).attr('x2',6).attr('y2',y+8).attr('stroke',dim).attr('stroke-width',0.8);
+      g.append('line').attr('x1',6).attr('y1',y).attr('x2',-6).attr('y2',y+8).attr('stroke',dim).attr('stroke-width',0.8);
+    }
+    [-40,0,40].forEach(dx=>{
+      g.append('rect').attr('x',dx-10).attr('y',-52).attr('width',20).attr('height',8).attr('fill','none').attr('stroke',c).attr('stroke-width',1.4);
+    });
+    g.append('rect').attr('x',-16).attr('y',34).attr('width',32).attr('height',18).attr('rx',2).attr('fill','none').attr('stroke',o).attr('stroke-width',1.4);
+    g.append('ellipse').attr('cy',52).attr('rx',26).attr('ry',5).attr('fill','none').attr('stroke',dim).attr('stroke-width',1).attr('stroke-dasharray','2 2');
+  } else if (type === 'rru'){
+    g.append('rect').attr('x',-26).attr('y',-24).attr('width',52).attr('height',48).attr('rx',3).attr('fill','none').attr('stroke',o).attr('stroke-width',1.6);
+    for(let x=-18;x<=18;x+=6) g.append('line').attr('x1',x).attr('y1',-24).attr('x2',x).attr('y2',24).attr('stroke',o).attr('stroke-width',0.7);
+    g.append('circle').attr('cx',18).attr('cy',-16).attr('r',2.4).attr('fill',c);
+    g.append('circle').attr('cx',18).attr('cy',-8).attr('r',2.4).attr('fill','#F0524A');
+  } else if (type === 'cabinet'){
+    g.append('rect').attr('x',-30).attr('y',-46).attr('width',60).attr('height',92).attr('rx',3).attr('fill','none').attr('stroke',dim).attr('stroke-width',1.6);
+    g.append('line').attr('x1',-30).attr('y1',-16).attr('x2',30).attr('y2',-16).attr('stroke',dim).attr('stroke-width',1);
+    g.append('line').attr('x1',-30).attr('y1',14).attr('x2',30).attr('y2',14).attr('stroke',dim).attr('stroke-width',1);
+    for(let x=-20;x<=20;x+=10) g.append('rect').attr('x',x-3).attr('y',-40).attr('width',6).attr('height',18).attr('fill','none').attr('stroke',c).attr('stroke-width',1);
+    for(let x=-20;x<=20;x+=13) g.append('circle').attr('cx',x).attr('cy',38).attr('r',5).attr('fill','none').attr('stroke',o).attr('stroke-width',1.2);
+  }
+}
+function strokeVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+const grid = document.getElementById('grid');
+PAGES.forEach(p=>{
+  const a = document.createElement('a');
+  a.className = 'card'; a.href = p.href;
+  a.innerHTML = `<div class="thumb"><svg width="140" height="120" viewBox="0 0 140 120"></svg></div>
+    <div class="card-body">
+      <div class="card-kicker">${p.kicker}</div>
+      <div class="card-title">${p.title}</div>
+      <div class="card-desc">${p.desc}</div>
+      <div class="tagrow">${p.tags.map(t=>`<span class="tag ${t}">${t}</span>`).join('')}</div>
+      <div class="card-cta">Open illustration \u2192</div>
+    </div>`;
+  grid.appendChild(a);
+  drawIcon(a.querySelector('svg'), p.icon);
+});
+</script>
+</body>
+</html>
