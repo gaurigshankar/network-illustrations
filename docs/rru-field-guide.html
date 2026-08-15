@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote radio unit — interactive field guide</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root{
+    --paper:#e9edf1;
+    --panel:#ffffff;
+    --line:#c8d1da;
+    --ink:#18212b;
+    --muted:#4d5b6a;
+    --metal-dark:#414c58;
+    --metal:#67737f;
+    --metal-light:#8d99a5;
+    --fin:#7b8794;
+    --antenna:#c3ccd6;
+    --antenna-edge:#9aa6b2;
+    --pipe:#aab5c0;
+    --rubber:#2b3036;
+    --accent:#0b6a7d;
+    --accent-soft:#d3e7ec;
+    --focus:#6a2fd0;
+    --led-green:#12855a;
+    --led-red:#c0392b;
+    --led-amber:#a86a00;
+    --led-off:#7c8894;
+    --label:12.5px;
+    --caption:11px;
+    --sans:"Inter","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:1600px;margin:0 auto;padding:20px 20px 40px}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;
+    padding:0 2px 16px;
+  }
+  h1{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+  .sub{margin:2px 0 0;font-size:13px;color:var(--muted)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{
+    font:inherit;font-size:13px;font-weight:500;
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;
+    padding:8px 14px;cursor:pointer;
+  }
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .btn[aria-pressed="true"]{background:var(--led-red);border-color:var(--led-red);color:#fff}
+  .btn[aria-pressed="true"]:hover{color:#fff;border-color:var(--led-red)}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:20px;align-items:start}
+  .stage{
+    position:relative;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;
+    height:min(74vh,720px);min-height:460px;overflow:hidden;
+  }
+  #diagram{display:block;width:100%;height:100%;touch-action:pan-y}
+  #flow{position:absolute;inset:0;pointer-events:none}
+  .rail{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px;max-height:min(74vh,720px);min-height:460px;overflow:auto;
+  }
+  @media (max-width:900px){
+    main{grid-template-columns:1fr}
+    .stage{height:56vh;min-height:360px}
+    .rail{max-height:none;min-height:0}
+  }
+
+  /* ---------- rail typography ---------- */
+  .rail h2{font-size:17px;font-weight:600;margin:0 0 6px;letter-spacing:-.01em}
+  .rail h3{
+    font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:18px 0 5px;
+  }
+  .rail p{margin:0 0 10px}
+  .rail .lede{font-size:14px;color:var(--muted)}
+  .rail ul{margin:0;padding-left:18px}
+  .rail li{margin-bottom:5px}
+  .rail .caption{font-size:12px;color:var(--muted);line-height:1.45}
+  .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .back{
+    display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;
+    font:inherit;font-size:13px;font-weight:500;
+    background:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--ink);
+  }
+  .back:hover{border-color:var(--accent);color:var(--accent)}
+  .back:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .fault-item{border-left:3px solid var(--line);padding-left:10px;margin-bottom:10px}
+  .fault-item .sym{font-weight:600}
+  .fault-item .fix{color:var(--muted);font-size:13.5px}
+  .rail.fault .fault-item{border-left-color:var(--led-red)}
+  .legend{list-style:none;padding:0;margin:0}
+  .legend li{display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;font-size:13.5px}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-top:4px;border:1px solid rgba(0,0,0,.25)}
+  .legend .state{font-weight:600}
+  .legend .meaning{color:var(--muted)}
+  .note{
+    margin-top:16px;padding:10px 12px;background:#f2f6f8;border:1px solid var(--line);
+    border-radius:8px;font-size:12px;color:var(--muted);line-height:1.45;
+  }
+  .banner{
+    margin:0 0 14px;padding:8px 11px;border-radius:8px;
+    background:#fbeceb;border:1px solid #e8bdb8;color:#8c2b1f;
+    font-size:12.5px;font-weight:500;
+  }
+
+  /* ---------- svg parts ---------- */
+  .part{cursor:pointer}
+  .part .halo{fill:none;stroke:transparent;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;pointer-events:none}
+  .part .hit{fill:none;stroke:#000;stroke-opacity:0;stroke-width:22;stroke-linecap:round;pointer-events:stroke}
+  .part:hover .halo{stroke:var(--accent)}
+  .part:focus{outline:none}
+  .part:focus .halo{stroke:var(--focus);stroke-width:2.5;stroke-dasharray:6 3}
+  .part.is-selected .halo{stroke:var(--accent);stroke-width:2.5;stroke-dasharray:none}
+  #parts.pulse-once .halo{animation:pulse 1.7s ease-out 1}
+  @keyframes pulse{
+    0%,100%{stroke:transparent}
+    35%{stroke:var(--accent);stroke-opacity:.55}
+  }
+  #stage.has-selection .part{opacity:.35;filter:saturate(.25);transition:opacity .3s ease,filter .3s ease}
+  #stage.has-selection .part.is-selected{opacity:1;filter:none}
+  .part{transition:opacity .3s ease,filter .3s ease}
+
+  .lbl text{font-size:var(--label);fill:var(--ink);font-family:var(--sans)}
+  .lbl .leader{stroke:var(--muted);stroke-width:1;fill:none;opacity:.75}
+  .lbl .anchor{fill:var(--muted)}
+  .lbl{cursor:pointer}
+  .lbl:hover text{fill:var(--accent)}
+  #stage.has-selection .lbl{opacity:0;pointer-events:none;transition:opacity .25s}
+  #stage.has-selection .lbl.is-selected{opacity:1;pointer-events:auto}
+  .lbl{transition:opacity .25s}
+
+  .inset text{font-size:var(--caption);fill:var(--muted);font-family:var(--sans)}
+  .inset .frame{fill:#f5f8fa;stroke:var(--line);stroke-width:1}
+  .fault-only{display:none}
+  #stage.fault .fault-only{display:inline}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="toolbar">
+    <div>
+      <h1>Remote radio unit, tower top</h1>
+      <p class="sub">Field-training diagram. Click a part, or press Tab then Enter, to open its detail.</p>
+    </div>
+    <div class="controls">
+      <button class="btn" id="fault-toggle" aria-pressed="false">Fault mode: off</button>
+      <button class="btn" id="reset-view">Reset view</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" id="stage">
+      <svg id="diagram" viewBox="0 0 980 730" preserveAspectRatio="xMidYMid meet"
+           role="group" aria-label="Cutaway illustration of a remote radio unit mounted on a tower-top pipe mount behind a panel antenna. Nine parts are individually selectable."></svg>
+      <canvas id="flow" aria-hidden="true"></canvas>
+    </section>
+    <aside class="rail" id="rail" aria-live="polite">
+      <div id="rail-body"></div>
+    </aside>
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   1. CONTENT MODEL — every string, figure and fault lives here.
+      Drawing code below reads from PARTS and LED_STATES and hardcodes nothing.
+   ========================================================================= */
+
+const PARTS = [
+  {
+    id: 'panel-antenna',
+    name: 'Panel antenna (context)',
+    function: 'Turns the radio\u2019s conducted RF into a shaped beam over one sector, and collects the uplink coming back from handsets.',
+    inputs: 'Conducted RF from the radio over one jumper per branch; AISG control for remote electrical tilt.',
+    outputs: 'Radiated downlink over the sector; received uplink RF returned to the radio.',
+    typicalValues: [
+      'Gain 15\u201318 dBi per band',
+      'Azimuth beamwidth about 65\u00b0 for a three-sector site',
+      'Electrical tilt range 0\u201310\u00b0',
+      'Bands 700\u2013960 MHz and 1710\u20132690 MHz'
+    ],
+    onSiteAppearance: 'The large flat white or light grey radome in front of the radio, roughly 1.3\u20132 m tall. Ports and a tilt scale are on the underside; nothing is serviceable through the radome.',
+    commonFaults: [
+      { symptom: 'Return loss or VSWR alarm on one branch', check: 'Check the jumper and its connector at the antenna port first \u2014 the antenna itself is rarely the fault.' },
+      { symptom: 'Coverage does not match the design', check: 'Verify azimuth and mechanical downtilt against the site drawing before touching electrical tilt.' },
+      { symptom: 'Sectors behave as though swapped after a visit', check: 'Trace port-to-branch mapping and re-read the cable labels at both ends.' }
+    ],
+    vendorAliases: 'Panel or sector antenna (Amphenol, CommScope, Ericsson, Huawei, Kathrein, RFS)'
+  },
+  {
+    id: 'pipe-mount',
+    name: 'Galvanised pipe mount and downtilt bracket',
+    function: 'Holds the radio and the antenna rigidly on the structure and sets mechanical azimuth and downtilt.',
+    inputs: 'Static and wind load from the antenna and radio.',
+    outputs: 'Load transferred into the tower steel; a fixed pointing angle.',
+    typicalValues: [
+      'Pipe outside diameter 60\u2013115 mm',
+      'Mechanical downtilt range 0\u201310\u00b0',
+      'Stainless or hot-dip galvanised U-bolts, torqued to the bracket maker\u2019s figure',
+      'Designed for survival wind speeds of roughly 200 km/h'
+    ],
+    onSiteAppearance: 'A dull silver-grey pipe with a slightly crystalline galvanised finish, clamped by U-bolts. The tilt bracket at the antenna\u2019s lower rear has a stamped degree scale.',
+    commonFaults: [
+      { symptom: 'Azimuth has drifted after a storm', check: 'Check U-bolt torque and whether the clamp has bitten into the pipe.' },
+      { symptom: 'Measured tilt does not match the database', check: 'Read the stamped scale on the bracket and record it before adjusting anything.' },
+      { symptom: 'Rust streaks running down the pipe', check: 'Inspect for damaged galvanising and mixed-metal hardware causing galvanic corrosion.' }
+    ],
+    vendorAliases: 'Pipe mount, pole mount or antenna mounting kit (CommScope, Rosenberger, Sabre, Valmont)'
+  },
+  {
+    id: 'rru-chassis',
+    name: 'Remote radio unit (RRU) chassis and heat-sink fins',
+    function: 'Converts baseband over fibre into amplified RF for the antenna and digitises the uplink, dissipating its own heat passively through the fins.',
+    inputs: 'DC power, digital baseband over the fibre link, uplink RF from the antenna.',
+    outputs: 'Amplified downlink RF to the antenna, digitised uplink to the baseband unit, and a lot of waste heat.',
+    typicalValues: [
+      'Output 2\u00d740 W or 2\u00d760 W per branch on an LTE macro radio',
+      'Mass 15\u201330 kg \u2014 a two-person lift on the mast',
+      'Ingress protection IP65 or IP66',
+      'Operating range about \u221240\u00a0\u00b0C to +55\u00a0\u00b0C ambient'
+    ],
+    onSiteAppearance: 'A finned rectangular block, usually pale grey, mounted just behind or beside the antenna. Warm to the touch under load, with all connectors on the underside so water runs away from them.',
+    commonFaults: [
+      { symptom: 'Thermal alarm or power back-off on hot days', check: 'Look for nests, plastic sheeting or dirt blocking the fins, and confirm the clearance behind the unit.' },
+      { symptom: 'Radio unreachable from the operations centre', check: 'Check DC and the fibre link first; the chassis is almost never the primary fault.' },
+      { symptom: 'Water ingress or humidity alarm', check: 'Check every unused port has its blanking cap fitted and torqued, and inspect the door gasket.' }
+    ],
+    vendorAliases: 'Remote radio unit, remote radio head or radio unit (Ericsson Radio, Huawei RRU, Nokia RFM, Samsung RRH, ZTE RRU)'
+  },
+  {
+    id: 'coax-jumper',
+    name: 'Coax jumper, weatherproof boot and antenna port',
+    function: 'Carries conducted RF the short distance between the radio\u2019s antenna port and the antenna itself.',
+    inputs: 'Downlink RF from the radio\u2019s power amplifier.',
+    outputs: 'RF delivered to the antenna port; uplink RF returned to the radio.',
+    typicalValues: [
+      'Half-inch superflex coax, 0.5\u20133 m long',
+      'Connectors 4.3-10, 7/16 DIN or N type',
+      'Insertion loss well under 0.5 dB at these lengths',
+      'VSWR better than 1.5:1 when correctly made off'
+    ],
+    onSiteAppearance: 'A thick, stiff cable with a matt black rubber boot or self-amalgamating tape wrap over the connector. The boot should point downward so water drips clear.',
+    commonFaults: [
+      { symptom: 'VSWR alarm that appears or worsens in the rain', check: 'Suspect the weatherproofing \u2014 open the boot and look for water tracking into the connector.' },
+      { symptom: 'Intermittent VSWR or passive intermodulation complaints', check: 'Check the connector is torqued to spec and the braid was not nicked when it was made off.' },
+      { symptom: 'Radio reports no output on one branch', check: 'Verify the jumper is on the port the design says, not the neighbouring one.' }
+    ],
+    vendorAliases: 'RF jumper or antenna jumper (CommScope, Huber+Suhner, Radio Frequency Systems, Rosenberger)'
+  },
+  {
+    id: 'fibre-lc',
+    name: 'LC fibre pair, the CPRI or eCPRI link',
+    function: 'Carries digitised radio samples between the radio and the baseband unit at the foot of the site.',
+    inputs: 'Downlink sample stream from the baseband unit.',
+    outputs: 'Uplink sample stream sent back down the mast.',
+    typicalValues: [
+      'CPRI line rates 2.4576, 4.9152 or 9.8304 Gbit/s; eCPRI commonly 10 or 25 Gbit/s',
+      'Single-mode fibre, 9/125 \u00b5m core, duplex LC connectors',
+      'Received optical power typically \u22123 to \u221214 dBm',
+      'Runs of a few tens of metres up to several kilometres'
+    ],
+    onSiteAppearance: 'Two small square latching connectors side by side, one transmit and one receive, usually with a duplex clip and coloured boots. Far thinner and lighter than the coax.',
+    commonFaults: [
+      { symptom: 'Link down or loss of signal on the radio', check: 'Clean and inspect both ferrules before anything else; contamination causes most optical faults.' },
+      { symptom: 'Link is up but throwing CRC or bit errors', check: 'Read the received optical power at both ends and compare it against the module\u2019s window.' },
+      { symptom: 'Optics report light but the link never comes up', check: 'Check transmit and receive are not swapped, and that the port matches the configured mapping.' }
+    ],
+    vendorAliases: 'Fibre optic link, CPRI or eCPRI link, fronthaul (all vendors use LC duplex; module branding varies)'
+  },
+  {
+    id: 'dc-power',
+    name: 'DC power connector and feed',
+    function: 'Feeds the radio from the DC plant in the cabinet at the base of the site.',
+    inputs: 'DC from the rectifier and battery plant.',
+    outputs: 'Regulated supply to the radio\u2019s internal rails.',
+    typicalValues: [
+      '\u221248 V DC nominal, operating roughly \u221240 V to \u221257 V',
+      'Draw of 10\u201325 A, or several hundred watts to about 1.5 kW under load',
+      'Feed conductors commonly 6\u201316 mm\u00b2',
+      'Locking circular or rectangular connector, quarter-turn or screw coupling'
+    ],
+    onSiteAppearance: 'The heaviest cable on the underside, ending in a locking connector with a knurled collar. The cable normally runs in the same bundle as the fibre down the mast.',
+    commonFaults: [
+      { symptom: 'Radio completely dead, no LEDs at all', check: 'Check the breaker in the cabinet and measure voltage right at the radio connector.' },
+      { symptom: 'Under-voltage alarm only at high traffic', check: 'Calculate volt drop over the run and check for a loose or corroded termination at the cabinet end.' },
+      { symptom: 'Radio reboots intermittently in wind', check: 'Confirm the connector is fully mated and locked, and check the cable is properly supported.' }
+    ],
+    vendorAliases: 'DC feeder or power connector (vendor-specific bodies from Amphenol, Harting, ODU, Rosenberger)'
+  },
+  {
+    id: 'status-leds',
+    name: 'Status LED cluster',
+    function: 'Gives a local, at-a-glance indication of power, alarms and whether the radio is transmitting.',
+    inputs: 'Internal state from the radio\u2019s control software.',
+    outputs: 'Visual status for the technician standing at the unit.',
+    typicalValues: [
+      'Usually three or four indicators behind a small window on the underside or side',
+      'Steady green: powered and running normally',
+      'Blinking green: starting up or loading software',
+      'Steady red: an active alarm the radio has raised; amber or blinking red: a warning or degraded state'
+    ],
+    onSiteAppearance: 'A recessed window a few centimetres across, hard to read in daylight \u2014 shade it with your hand rather than guessing.',
+    commonFaults: [
+      { symptom: 'All indicators dark', check: 'Treat it as a DC problem, not a radio problem, and start at the cabinet breaker.' },
+      { symptom: 'Steady red alarm indicator', check: 'Read the actual alarm at the baseband unit or management system before touching hardware; the LED only tells you an alarm exists.' },
+      { symptom: 'Green that blinks and never goes steady', check: 'The radio is likely stuck in boot or software download \u2014 check the fibre link and the software load on the baseband unit.' }
+    ],
+    vendorAliases: 'Status or indicator LEDs (labels vary: RUN/ALM/RF, PWR/STAT/ACT, OPR/FLT)'
+  },
+  {
+    id: 'grounding',
+    name: 'Grounding lug, earth strap and surge arrestor',
+    function: 'Bonds the radio to the tower earth so lightning energy and induced surges go to ground instead of through the electronics.',
+    inputs: 'Surge current from a strike or induced transient.',
+    outputs: 'That current diverted to the earthing system.',
+    typicalValues: [
+      'Earth conductor commonly 16\u201325 mm\u00b2 (about 6 AWG), green-and-yellow',
+      'Bonded at the top of the run, at any bend, and at the entry to the cabinet',
+      'Site earth resistance target often below 5\u201310 \u03a9',
+      'Arrestors fitted on the DC feed and, where used, on coax runs'
+    ],
+    onSiteAppearance: 'A green-and-yellow strap running from a bolted lug on the chassis to an earth bar or the pipe, with an antioxidant paste at the joint. The arrestor is a small sealed block in the cable path.',
+    commonFaults: [
+      { symptom: 'Repeated equipment damage after storms', check: 'Test bond continuity end to end and check whether the arrestor has already operated and needs replacing.' },
+      { symptom: 'Intermittent noise or interference complaints', check: 'Inspect the earth lug for corrosion or paint under the washer \u2014 a high-resistance bond is a classic cause.' },
+      { symptom: 'Earth resistance test fails at handover', check: 'Follow the conductor down to the ring and look for a broken or unbonded section.' }
+    ],
+    vendorAliases: 'Earth lug and earth strap; surge protection device or arrestor (Huber+Suhner, PolyPhaser, Raycap)'
+  },
+  {
+    id: 'aisg-ret',
+    name: 'AISG remote electrical tilt (RET) control',
+    function: 'Carries control and power from the radio to the tilt motor inside the antenna so beam tilt can be changed without a climb.',
+    inputs: 'Tilt commands from the management system, relayed by the radio.',
+    outputs: 'Motor drive to the antenna\u2019s phase shifters, and reported tilt back to the network.',
+    typicalValues: [
+      'AISG 2.0 or 3.0, RS-485 over an 8-pin connector',
+      'Line voltage typically 10\u201330 V DC',
+      'Devices are daisy-chained and addressed by a scan',
+      'Tilt resolution usually 0.1\u20131\u00b0 over a 0\u201310\u00b0 range'
+    ],
+    onSiteAppearance: 'A thin round cable with a screw-on 8-pin connector, running from the radio to a port on the antenna\u2019s underside. Easy to mistake for an alarm or sensor lead.',
+    commonFaults: [
+      { symptom: 'RET device not found during a scan', check: 'Check the daisy-chain is unbroken and that the port is actually supplying the AISG line voltage.' },
+      { symptom: 'Tilt command times out part-way', check: 'Suspect the motor or a damaged cable; a partially moved actuator often reports the old value.' },
+      { symptom: 'Reported tilt does not match the antenna', check: 'Re-run the device scan and confirm the mapping between device address and physical antenna.' }
+    ],
+    vendorAliases: 'AISG control line, RET cable or ALD control (AISG is an open standard; connectors are common across vendors)'
+  }
+];
+
+/* LED semantics, declared alongside PARTS so the diagram, the legend and the
+   fault toggle all read from one place. Colour is always paired with text. */
+const LED_STATES = {
+  normal: [
+    { code: 'RUN', colour: 'var(--led-green)', state: 'Green, steady', meaning: 'Powered and running normally.' },
+    { code: 'ALM', colour: 'var(--led-off)',   state: 'Off',            meaning: 'No alarm currently raised.' },
+    { code: 'RF',  colour: 'var(--led-green)', state: 'Green, steady',  meaning: 'Carriers enabled and transmitting.' }
+  ],
+  fault: [
+    { code: 'RUN', colour: 'var(--led-amber)', state: 'Amber, blinking', meaning: 'Running, but degraded or restarting.' },
+    { code: 'ALM', colour: 'var(--led-red)',   state: 'Red, steady',     meaning: 'Active alarm \u2014 read the alarm text at the baseband unit.' },
+    { code: 'RF',  colour: 'var(--led-off)',   state: 'Off',             meaning: 'Not transmitting; carriers are down.' }
+  ]
+};
+
+const ORIENTATION = {
+  title: 'Start here',
+  lede: 'This is a remote radio unit, mounted at the top of the tower directly behind the antenna. It takes DC power and a fibre link from the cabinet at the bottom of the site, and hands amplified RF to the antenna over a short coax jumper. Click any highlighted part to open its detail.',
+  keyboard: 'Keyboard: Tab moves between parts, Enter or Space opens one, Escape returns to this overview.',
+  disclaimer: 'All figures shown are representative ranges for typical LTE macro equipment. They are illustrative and vendor-dependent, not manufacturer specifications \u2014 always work from the equipment documentation for the radio in front of you.'
+};
+
+/* =========================================================================
+   2. GEOMETRY CONSTANTS AND LABEL PLACEMENT (drawing only, no content)
+   ========================================================================= */
+
+const VB = { w: 980, h: 730 };
+
+// Worm's-eye three-quarter projection: receding edges travel up and to the right,
+// which is how a technician standing at the base actually sees a tower-top radio.
+const DEPTH = { x: 70, y: -40 };
+
+const BOX = { x: 430, y: 180, w: 220, h: 250 };      // RRU front face
+const PIPE = { x: 386, y: 40, w: 28, h: 600 };
+
+// Port anchor points along the underside front edge of the chassis.
+const PORT = {
+  coax:  { x: 462, y: BOX.y + BOX.h },
+  aisg:  { x: 508, y: BOX.y + BOX.h },
+  fibreA:{ x: 546, y: BOX.y + BOX.h },
+  fibreB:{ x: 568, y: BOX.y + BOX.h },
+  dc:    { x: 614, y: BOX.y + BOX.h }
+};
+
+const CABLE = {
+  coax:  'M462,468 C462,524 400,532 340,504 C300,486 262,452 244,438',
+  aisg:  'M508,470 C508,548 452,586 372,564 C318,548 288,486 276,450',
+  fibre: 'M556,500 C552,556 548,592 548,638',
+  dc:    'M614,452 C614,524 642,578 648,638',
+  earth: 'M440,414 C424,442 404,452 396,472'
+};
+
+const LABELS = {
+  'panel-antenna': { x: 142, y: 118, anchor: 'end',   to: [206, 168], wrap: 17 },
+  'pipe-mount':    { x: 520, y: 70,  anchor: 'start', to: [416, 104], wrap: 20 },
+  'rru-chassis':   { x: 768, y: 108, anchor: 'start', to: [648, 176], wrap: 22 },
+  'status-leds':   { x: 742, y: 336, anchor: 'start', to: [704, 366], wrap: 16 },
+  'coax-jumper':   { x: 104, y: 486, anchor: 'start', to: [336, 502], wrap: 20 },
+  'aisg-ret':      { x: 104, y: 588, anchor: 'start', to: [348, 558], wrap: 20 },
+  'grounding':     { x: 60,  y: 660, anchor: 'start', to: [384, 556], wrap: 22 },
+  'fibre-lc':      { x: 470, y: 676, anchor: 'start', to: [546, 640], wrap: 22 },
+  'dc-power':      { x: 700, y: 668, anchor: 'start', to: [652, 640], wrap: 16 }
+};
+
+const DRAW_ORDER = [
+  'panel-antenna', 'pipe-mount', 'rru-chassis',
+  'coax-jumper', 'aisg-ret', 'fibre-lc', 'dc-power',
+  'status-leds', 'grounding'
+];
+
+/* =========================================================================
+   3. SET-UP
+   ========================================================================= */
+
+if (typeof d3 === 'undefined') {
+  document.getElementById('rail-body').textContent =
+    'D3 v7 could not be loaded from the CDN. Connect to the network and reload the page.';
+  throw new Error('d3 unavailable');
+}
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE_MS = reduceMotion ? 0 : 600;
+
+const stage = document.getElementById('stage');
+const svg = d3.select('#diagram');
+const railBody = d3.select('#rail-body');
+
+let selectedId = null;
+let faultMode = false;
+let currentTransform = d3.zoomIdentity;
+
+// Depth helper: a point on the right-hand side face, u across the depth (0-100), v down.
+function sidePoint(u, v) {
+  return [BOX.x + BOX.w + u * DEPTH.x / 100, BOX.y + u * DEPTH.y / 100 + v];
+}
+function pts(list) { return list.map(p => p.join(',')).join(' '); }
+
+/* Renders the gradients and the single soft shadow used anywhere in the drawing. */
+function defs() {
+  const d = svg.append('defs');
+  const g1 = d.append('linearGradient').attr('id', 'gradFront').attr('x1', 0).attr('x2', 1);
+  g1.append('stop').attr('offset', 0).attr('stop-color', '#8a95a1');
+  g1.append('stop').attr('offset', 1).attr('stop-color', '#6d7885');
+  const g2 = d.append('linearGradient').attr('id', 'gradSide').attr('x1', 0).attr('x2', 1);
+  g2.append('stop').attr('offset', 0).attr('stop-color', '#5a6570');
+  g2.append('stop').attr('offset', 1).attr('stop-color', '#48525d');
+  const g3 = d.append('linearGradient').attr('id', 'gradPipe').attr('x1', 0).attr('x2', 1);
+  g3.append('stop').attr('offset', 0).attr('stop-color', '#96a2ae');
+  g3.append('stop').attr('offset', .45).attr('stop-color', '#c3ccd5');
+  g3.append('stop').attr('offset', 1).attr('stop-color', '#8e9aa6');
+  const g4 = d.append('linearGradient').attr('id', 'gradAntenna').attr('x1', 0).attr('x2', 1);
+  g4.append('stop').attr('offset', 0).attr('stop-color', '#d3dae1');
+  g4.append('stop').attr('offset', 1).attr('stop-color', '#bcc6d0');
+  const f = d.append('filter').attr('id', 'softShadow').attr('x', '-20%').attr('y', '-20%')
+             .attr('width', '150%').attr('height', '150%');
+  f.append('feDropShadow').attr('dx', 6).attr('dy', 10).attr('stdDeviation', 10)
+   .attr('flood-color', '#1c2733').attr('flood-opacity', .18);
+}
+defs();
+
+svg.append('rect').attr('id', 'bg').attr('width', VB.w).attr('height', VB.h).attr('fill', 'var(--panel)');
+const viewport = svg.append('g').attr('id', 'viewport');
+const partsG = viewport.append('g').attr('id', 'parts');
+const labelsG = viewport.append('g').attr('id', 'labels');
+
+/* =========================================================================
+   4. DRAWING FUNCTIONS — one per part
+   ========================================================================= */
+
+/* Renders the panel antenna as a lighter-toned context object, slightly downtilted. */
+function drawAntenna(g) {
+  const front = [[156, 84], [292, 74], [300, 424], [164, 434]];
+  const side  = [[292, 74], [326, 54], [334, 404], [300, 424]];
+  g.append('polygon').attr('points', pts(side)).attr('fill', 'var(--antenna-edge)')
+   .attr('stroke', 'var(--antenna-edge)').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+  g.append('polygon').attr('points', pts(front)).attr('fill', 'url(#gradAntenna)')
+   .attr('stroke', 'var(--antenna-edge)').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+  // radome seam and end caps
+  g.append('line').attr('x1', 226).attr('y1', 79).attr('x2', 234).attr('y2', 429)
+   .attr('stroke', 'var(--antenna-edge)').attr('stroke-width', .75).attr('opacity', .7);
+  g.append('line').attr('x1', 158).attr('y1', 110).attr('x2', 295).attr('y2', 100)
+   .attr('stroke', 'var(--antenna-edge)').attr('stroke-width', .75);
+  g.append('line').attr('x1', 162).attr('y1', 400).attr('x2', 299).attr('y2', 390)
+   .attr('stroke', 'var(--antenna-edge)').attr('stroke-width', .75);
+  // underside ports
+  g.selectAll('rect.aport').data([[196, 429], [240, 427], [274, 425]]).join('rect')
+   .attr('class', 'aport')
+   .attr('x', d => d[0] - 5).attr('y', d => d[1]).attr('width', 10).attr('height', 12).attr('rx', 2)
+   .attr('fill', 'var(--metal)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', .75);
+  g.append('path').attr('class', 'halo')
+   .attr('d', 'M156,84 L292,74 L326,54 L334,404 L300,424 L164,434 Z');
+}
+
+/* Renders the galvanised pipe, its U-bolt clamps and the antenna downtilt bracket. */
+function drawMount(g) {
+  g.append('rect').attr('x', PIPE.x).attr('y', PIPE.y).attr('width', PIPE.w).attr('height', PIPE.h)
+   .attr('fill', 'url(#gradPipe)').attr('stroke', 'var(--metal)').attr('stroke-width', 1.5);
+  g.append('ellipse').attr('cx', PIPE.x + PIPE.w / 2).attr('cy', PIPE.y).attr('rx', PIPE.w / 2).attr('ry', 5)
+   .attr('fill', '#d5dce3').attr('stroke', 'var(--metal)').attr('stroke-width', 1);
+  // galvanising spangle, drawn as sparse surface ticks
+  g.selectAll('line.spangle').data(d3.range(70, 630, 46)).join('line')
+   .attr('class', 'spangle')
+   .attr('x1', PIPE.x + 5).attr('x2', PIPE.x + 15)
+   .attr('y1', d => d).attr('y2', d => d + 7)
+   .attr('stroke', '#ffffff').attr('stroke-width', .75).attr('opacity', .5);
+  // downtilt bracket: upper arm, lower strut with hinge and degree scale
+  g.append('path').attr('d', 'M330,142 L388,134 L388,148 L330,156 Z')
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal)').attr('stroke-width', 1.5);
+  g.append('path').attr('d', 'M334,376 L388,392 L388,406 L334,390 Z')
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal)').attr('stroke-width', 1.5);
+  g.append('circle').attr('cx', 336).attr('cy', 383).attr('r', 7)
+   .attr('fill', '#dfe5ea').attr('stroke', 'var(--metal)').attr('stroke-width', 1.5);
+  g.selectAll('line.scale').data(d3.range(0, 5)).join('line')
+   .attr('class', 'scale')
+   .attr('x1', 344).attr('x2', 350)
+   .attr('y1', d => 366 + d * 6).attr('y2', d => 366 + d * 6)
+   .attr('stroke', 'var(--metal-dark)').attr('stroke-width', .75);
+  // U-bolt clamps carrying the radio
+  g.selectAll('g.clamp').data([214, 352]).join('g').attr('class', 'clamp').each(function (y) {
+    const c = d3.select(this);
+    c.append('rect').attr('x', 396).attr('y', y).attr('width', 44).attr('height', 22).attr('rx', 3)
+     .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1.5);
+    c.selectAll('circle').data([402, 434]).join('circle')
+     .attr('cx', d => d).attr('cy', y + 11).attr('r', 3)
+     .attr('fill', 'var(--metal-dark)');
+  });
+  g.append('rect').attr('class', 'halo')
+   .attr('x', PIPE.x).attr('y', PIPE.y).attr('width', PIPE.w).attr('height', PIPE.h);
+}
+
+/* Renders the RRU chassis: front face with heat-sink fins, right side face and visible underside. */
+function drawChassis(g) {
+  const fx = BOX.x, fy = BOX.y, fw = BOX.w, fh = BOX.h;
+  const back = [fx + DEPTH.x, fy + DEPTH.y];
+  g.attr('filter', 'url(#softShadow)');
+
+  // underside, seen from below
+  g.append('polygon')
+   .attr('points', pts([[fx, fy + fh], [fx + fw, fy + fh],
+                        [fx + fw + DEPTH.x, fy + fh + DEPTH.y], [fx + DEPTH.x, fy + fh + DEPTH.y]]))
+   .attr('fill', '#3b444e').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+  // right side face
+  g.append('polygon')
+   .attr('points', pts([[fx + fw, fy], [fx + fw + DEPTH.x, fy + DEPTH.y],
+                        [fx + fw + DEPTH.x, fy + fh + DEPTH.y], [fx + fw, fy + fh]]))
+   .attr('fill', 'url(#gradSide)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+  // front face
+  g.append('rect').attr('x', fx).attr('y', fy).attr('width', fw).attr('height', fh).attr('rx', 4)
+   .attr('fill', 'url(#gradFront)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1.5);
+  // heat-sink fins across the front face
+  g.selectAll('line.fin').data(d3.range(fx + 9, fx + fw - 4, 8)).join('line')
+   .attr('class', 'fin')
+   .attr('x1', d => d).attr('x2', d => d).attr('y1', fy + 10).attr('y2', fy + fh - 22)
+   .attr('stroke', 'var(--fin)').attr('stroke-width', .75).attr('opacity', .85);
+  // fin tips carried over the side face
+  g.selectAll('line.fintip').data(d3.range(6, 66, 8)).join('line')
+   .attr('class', 'fintip')
+   .attr('x1', d => sidePoint(d, 12)[0]).attr('y1', d => sidePoint(d, 12)[1])
+   .attr('x2', d => sidePoint(d, 200)[0]).attr('y2', d => sidePoint(d, 200)[1])
+   .attr('stroke', '#39424c').attr('stroke-width', .75).attr('opacity', .55);
+  // label plate and fasteners
+  g.append('rect').attr('x', fx + 14).attr('y', fy + fh - 18).attr('width', 74).attr('height', 12).attr('rx', 2)
+   .attr('fill', '#aab4bf').attr('stroke', 'var(--metal-dark)').attr('stroke-width', .75);
+  g.selectAll('circle.bolt').data([[fx + 8, fy + 8], [fx + fw - 8, fy + 8], [fx + 8, fy + fh - 8], [fx + fw - 8, fy + fh - 8]])
+   .join('circle').attr('class', 'bolt')
+   .attr('cx', d => d[0]).attr('cy', d => d[1]).attr('r', 3)
+   .attr('fill', '#54606c').attr('stroke', '#38424c').attr('stroke-width', .75);
+
+  g.append('path').attr('class', 'halo')
+   .attr('d', `M${fx},${fy} H${fx + fw} L${back[0] + fw},${back[1]} V${fy + fh + DEPTH.y}
+               H${fx + DEPTH.x} L${fx},${fy + fh} Z`);
+}
+
+/* Renders the coax jumper, its rubber weatherproofing boot and the antenna port it lands on. */
+function drawCoax(g) {
+  g.append('path').attr('class', 'hit').attr('d', CABLE.coax);
+  g.append('path').attr('d', CABLE.coax).attr('fill', 'none')
+   .attr('stroke', '#3d444b').attr('stroke-width', 9).attr('stroke-linecap', 'round');
+  g.append('path').attr('d', CABLE.coax).attr('fill', 'none')
+   .attr('stroke', '#5c656e').attr('stroke-width', 3.5).attr('stroke-linecap', 'round').attr('opacity', .8);
+  // antenna port body on the radio underside
+  g.append('rect').attr('x', PORT.coax.x - 9).attr('y', PORT.coax.y - 2).attr('width', 18).attr('height', 10).attr('rx', 2)
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  // rubber boot
+  g.append('rect').attr('x', PORT.coax.x - 12).attr('y', PORT.coax.y + 7).attr('width', 24).attr('height', 32).attr('rx', 7)
+   .attr('fill', 'var(--rubber)').attr('stroke', '#15181c').attr('stroke-width', 1);
+  g.selectAll('line.ridge').data([16, 24, 32]).join('line')
+   .attr('class', 'ridge')
+   .attr('x1', PORT.coax.x - 10).attr('x2', PORT.coax.x + 10)
+   .attr('y1', d => PORT.coax.y + d).attr('y2', d => PORT.coax.y + d)
+   .attr('stroke', '#4a5158').attr('stroke-width', .75);
+  // connector at the antenna end
+  g.append('circle').attr('cx', 244).attr('cy', 438).attr('r', 6)
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  // fault-mode marker: water tracking into the boot
+  g.append('text').attr('class', 'fault-only').attr('x', PORT.coax.x + 18).attr('y', PORT.coax.y + 30)
+   .attr('font-size', 17).attr('fill', 'var(--led-red)').text('\u26a0');
+  g.append('path').attr('class', 'halo').attr('d', CABLE.coax);
+}
+
+/* Renders the duplex LC fibre connectors and the fronthaul cable dropping down the mast. */
+function drawFibre(g) {
+  [PORT.fibreA, PORT.fibreB].forEach((p, i) => {
+    g.append('rect').attr('x', p.x - 7).attr('y', p.y - 1).attr('width', 14).attr('height', 22).attr('rx', 2)
+     .attr('fill', i ? '#cfd8de' : '#dfe6ea').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1)
+     .attr('class', 'lc-body');
+    g.append('rect').attr('x', p.x - 4).attr('y', p.y + 19).attr('width', 8).attr('height', 10).attr('rx', 2)
+     .attr('fill', '#7d8894').attr('stroke', 'var(--metal-dark)').attr('stroke-width', .75);
+    g.append('line').attr('x1', p.x).attr('y1', p.y + 28).attr('x2', 556).attr('y2', 500)
+     .attr('stroke', '#5f6a75').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
+  });
+  g.append('path').attr('class', 'hit').attr('d', CABLE.fibre);
+  g.append('path').attr('d', CABLE.fibre).attr('fill', 'none')
+   .attr('stroke', '#59636e').attr('stroke-width', 6).attr('stroke-linecap', 'round');
+  g.append('path').attr('d', CABLE.fibre).attr('fill', 'none')
+   .attr('stroke', '#7b8691').attr('stroke-width', 2).attr('opacity', .7);
+  g.append('text').attr('class', 'fault-only').attr('x', 570).attr('y', 470)
+   .attr('font-size', 17).attr('fill', 'var(--led-red)').text('\u26a0');
+  g.append('path').attr('class', 'halo').attr('d', CABLE.fibre);
+  g.append('rect').attr('class', 'halo')
+   .attr('x', PORT.fibreA.x - 10).attr('y', PORT.fibreA.y - 4)
+   .attr('width', 32).attr('height', 32).attr('rx', 4);
+}
+
+/* Renders the locking DC connector and the power feed running down the mast. */
+function drawDC(g) {
+  g.append('path').attr('class', 'hit').attr('d', CABLE.dc);
+  g.append('path').attr('d', CABLE.dc).attr('fill', 'none')
+   .attr('stroke', '#2f3439').attr('stroke-width', 8).attr('stroke-linecap', 'round');
+  g.append('path').attr('d', CABLE.dc).attr('fill', 'none')
+   .attr('stroke', '#4d545b').attr('stroke-width', 2.5).attr('opacity', .8);
+  g.append('rect').attr('x', PORT.dc.x - 11).attr('y', PORT.dc.y - 2).attr('width', 22).attr('height', 14).attr('rx', 3)
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  g.append('ellipse').attr('cx', PORT.dc.x).attr('cy', PORT.dc.y + 18).attr('rx', 12).attr('ry', 8)
+   .attr('fill', '#6f7a86').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  g.selectAll('line.knurl').data(d3.range(-8, 9, 4)).join('line')
+   .attr('class', 'knurl')
+   .attr('x1', d => PORT.dc.x + d).attr('x2', d => PORT.dc.x + d)
+   .attr('y1', PORT.dc.y + 12).attr('y2', PORT.dc.y + 24)
+   .attr('stroke', '#3e4750').attr('stroke-width', .75);
+  g.append('path').attr('class', 'halo').attr('d', CABLE.dc);
+  g.append('rect').attr('class', 'halo')
+   .attr('x', PORT.dc.x - 14).attr('y', PORT.dc.y - 4).attr('width', 28).attr('height', 32).attr('rx', 5);
+}
+
+/* Renders the AISG control lead from the radio to the antenna's RET port. */
+function drawAisg(g) {
+  g.append('path').attr('class', 'hit').attr('d', CABLE.aisg);
+  g.append('path').attr('d', CABLE.aisg).attr('fill', 'none')
+   .attr('stroke', '#454d55').attr('stroke-width', 4).attr('stroke-linecap', 'round');
+  g.append('rect').attr('x', PORT.aisg.x - 8).attr('y', PORT.aisg.y - 2).attr('width', 16).attr('height', 12).attr('rx', 2)
+   .attr('fill', 'var(--metal-light)').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  g.append('circle').attr('cx', PORT.aisg.x).attr('cy', PORT.aisg.y + 16).attr('r', 7)
+   .attr('fill', '#77828e').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  g.append('circle').attr('cx', 276).attr('cy', 450).attr('r', 5)
+   .attr('fill', '#77828e').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1);
+  g.append('path').attr('class', 'halo').attr('d', CABLE.aisg);
+}
+
+/* Renders the status LED window on the side face, with codes shown as text beside it. */
+function drawLeds(g) {
+  const w = [sidePoint(14, 196), sidePoint(80, 196), sidePoint(80, 232), sidePoint(14, 232)];
+  g.append('polygon').attr('points', pts(w))
+   .attr('fill', '#232a31').attr('stroke', '#151a1f').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round');
+  const codes = LED_STATES.normal.map(d => d.code);
+  g.selectAll('circle.led').data(codes).join('circle')
+   .attr('class', 'led')
+   .attr('data-code', d => d)
+   .attr('cx', (d, i) => sidePoint(26 + i * 21, 214)[0])
+   .attr('cy', (d, i) => sidePoint(26 + i * 21, 214)[1])
+   .attr('r', 5.5)
+   .attr('stroke', '#0d1114').attr('stroke-width', 1);
+  g.selectAll('text.ledcode').data(codes).join('text')
+   .attr('class', 'ledcode')
+   .attr('x', (d, i) => sidePoint(26 + i * 21, 214)[0] + 9)
+   .attr('y', (d, i) => sidePoint(26 + i * 21, 214)[1] + 20)
+   .attr('font-size', 11).attr('fill', 'var(--muted)').attr('font-family', 'var(--sans)')
+   .attr('text-anchor', 'middle').text(d => d);
+  g.append('polygon').attr('class', 'halo').attr('points', pts(w));
+}
+
+/* Renders the earth lug, the green-and-yellow strap and the surge arrestor on the pipe. */
+function drawGround(g) {
+  g.append('circle').attr('cx', 440).attr('cy', 410).attr('r', 5)
+   .attr('fill', '#b9932f').attr('stroke', '#7d6320').attr('stroke-width', 1);
+  g.append('path').attr('class', 'hit').attr('d', CABLE.earth);
+  g.append('path').attr('d', CABLE.earth).attr('fill', 'none')
+   .attr('stroke', '#4f7a1e').attr('stroke-width', 6).attr('stroke-linecap', 'round');
+  g.append('path').attr('d', CABLE.earth).attr('fill', 'none')
+   .attr('stroke', '#d8c22a').attr('stroke-width', 6).attr('stroke-linecap', 'round')
+   .attr('stroke-dasharray', '4 10');
+  // surge arrestor mounted on the pipe
+  g.append('rect').attr('x', 370).attr('y', 470).attr('width', 46).attr('height', 62).attr('rx', 5)
+   .attr('fill', '#6d7883').attr('stroke', 'var(--metal-dark)').attr('stroke-width', 1.5);
+  g.selectAll('line.arr').data([484, 494, 504, 514]).join('line')
+   .attr('class', 'arr')
+   .attr('x1', 378).attr('x2', 408).attr('y1', d => d).attr('y2', d => d)
+   .attr('stroke', '#4c555f').attr('stroke-width', .75);
+  // continuation of the earth conductor down the mast
+  g.append('path').attr('d', 'M392,532 C392,570 396,600 398,638').attr('fill', 'none')
+   .attr('stroke', '#4f7a1e').attr('stroke-width', 5).attr('stroke-linecap', 'round');
+  g.append('path').attr('d', 'M392,532 C392,570 396,600 398,638').attr('fill', 'none')
+   .attr('stroke', '#d8c22a').attr('stroke-width', 5).attr('stroke-dasharray', '4 10');
+  g.append('path').attr('class', 'halo').attr('d', CABLE.earth);
+  g.append('rect').attr('class', 'halo').attr('x', 370).attr('y', 470).attr('width', 46).attr('height', 62).attr('rx', 5);
+}
+
+const RENDERERS = {
+  'panel-antenna': drawAntenna,
+  'pipe-mount': drawMount,
+  'rru-chassis': drawChassis,
+  'coax-jumper': drawCoax,
+  'aisg-ret': drawAisg,
+  'fibre-lc': drawFibre,
+  'dc-power': drawDC,
+  'status-leds': drawLeds,
+  'grounding': drawGround
+};
+
+/* =========================================================================
+   5. DATA JOIN — one focusable group per entry in PARTS
+   ========================================================================= */
+
+const ordered = DRAW_ORDER.map(id => PARTS.find(p => p.id === id)).filter(Boolean);
+
+const partSel = partsG.selectAll('g.part')
+  .data(ordered, d => d.id)
+  .join('g')
+    .attr('class', 'part')
+    .attr('id', d => 'part-' + d.id)
+    .attr('tabindex', 0)
+    .attr('role', 'button')
+    .attr('aria-label', d => d.name + '. ' + d.function);
+
+partSel.append('title').text(d => d.name);
+partSel.each(function (d) { RENDERERS[d.id](d3.select(this), d); });
+
+partSel
+  .on('click', (e, d) => { e.stopPropagation(); select(d.id); })
+  .on('keydown', (e, d) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); select(d.id); }
+  });
+
+/* Renders the leader line and wrapped text label for one part. */
+function wrap(text, max) {
+  const words = text.split(/\s+/);
+  const lines = [];
+  let line = '';
+  words.forEach(w => {
+    if ((line + ' ' + w).trim().length > max && line) { lines.push(line); line = w; }
+    else { line = (line + ' ' + w).trim(); }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+const labelSel = labelsG.selectAll('g.lbl')
+  .data(ordered.filter(d => LABELS[d.id]), d => d.id)
+  .join('g')
+    .attr('class', 'lbl')
+    .attr('id', d => 'lbl-' + d.id)
+    .attr('aria-hidden', 'true');
+
+labelSel.each(function (d) {
+  const L = LABELS[d.id];
+  const g = d3.select(this);
+  const lines = wrap(d.name, L.wrap);
+  const startX = L.anchor === 'end' ? L.x - 4 : L.x + 4;
+  g.append('path').attr('class', 'leader')
+   .attr('d', `M${startX},${L.y - 4} L${L.to[0]},${L.to[1]}`);
+  g.append('circle').attr('class', 'anchor').attr('cx', L.to[0]).attr('cy', L.to[1]).attr('r', 2.5);
+  const t = g.append('text').attr('x', L.x).attr('y', L.y).attr('text-anchor', L.anchor);
+  lines.forEach((ln, i) => {
+    t.append('tspan').attr('x', L.x).attr('dy', i === 0 ? 0 : 15).text(ln);
+  });
+});
+labelSel.on('click', (e, d) => { e.stopPropagation(); select(d.id); });
+
+/* =========================================================================
+   6. LOCATOR INSET — fixed, outside the zoom transform
+   ========================================================================= */
+
+/* Renders the site-level locator: a simplified tower with the RRU position marked. */
+(function locator() {
+  const g = svg.append('g').attr('class', 'inset').attr('aria-hidden', 'true')
+               .attr('transform', 'translate(810,452)');
+  g.append('rect').attr('class', 'frame').attr('width', 150).attr('height', 190).attr('rx', 10);
+  const cx = 62;
+  g.append('path').attr('d', `M${cx - 26},168 L${cx - 9},26 L${cx + 9},26 L${cx + 26},168`)
+   .attr('fill', 'none').attr('stroke', 'var(--metal-light)').attr('stroke-width', 1.5);
+  g.selectAll('line.brace').data(d3.range(0, 7)).join('line')
+   .attr('class', 'brace')
+   .attr('x1', d => cx - 26 + d * 2.6).attr('y1', d => 168 - d * 20)
+   .attr('x2', d => cx + 24 - d * 2.4).attr('y2', d => 158 - d * 20)
+   .attr('stroke', 'var(--metal-light)').attr('stroke-width', .75).attr('opacity', .8);
+  g.append('rect').attr('x', cx - 22).attr('y', 150).attr('width', 44).attr('height', 20).attr('rx', 3)
+   .attr('fill', '#dfe5ea').attr('stroke', 'var(--metal-light)').attr('stroke-width', 1);
+  g.append('circle').attr('cx', cx + 2).attr('cy', 34).attr('r', 9)
+   .attr('fill', 'none').attr('stroke', 'var(--accent)').attr('stroke-width', 2);
+  g.append('circle').attr('cx', cx + 2).attr('cy', 34).attr('r', 3).attr('fill', 'var(--accent)');
+  g.append('text').attr('x', 84).attr('y', 32).text('You are here:');
+  g.append('text').attr('x', 84).attr('y', 46).text('radio, tower top');
+  g.append('text').attr('x', 84).attr('y', 158).text('BBU in the');
+  g.append('text').attr('x', 84).attr('y', 172).text('cabinet below');
+})();
+
+/* =========================================================================
+   7. ZOOM AND SELECTION
+   ========================================================================= */
+
+const zoom = d3.zoom()
+  .scaleExtent([1, 4])
+  .filter(e => e.type === 'mousedown')   // drag to pan only; wheel scrolls the page
+  .on('zoom', e => {
+    currentTransform = e.transform;
+    viewport.attr('transform', e.transform);
+  });
+
+svg.call(zoom);
+
+function zoomToNode(node) {
+  const b = node.getBBox();
+  const pad = 1.9;
+  const k = Math.max(1, Math.min(4, Math.min(VB.w / (b.width * pad), VB.h / (b.height * pad))));
+  const tx = VB.w / 2 - k * (b.x + b.width / 2);
+  const ty = VB.h / 2 - k * (b.y + b.height / 2);
+  svg.transition().duration(EASE_MS).ease(d3.easeCubicOut)
+     .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+}
+
+function select(id) {
+  selectedId = id;
+  stage.classList.add('has-selection');
+  partSel.classed('is-selected', d => d.id === id);
+  labelSel.classed('is-selected', d => d.id === id);
+  const node = document.getElementById('part-' + id);
+  if (node) { zoomToNode(node); node.focus({ preventScroll: true }); }
+  renderRail(PARTS.find(p => p.id === id));
+}
+
+function deselect() {
+  selectedId = null;
+  stage.classList.remove('has-selection');
+  partSel.classed('is-selected', false);
+  labelSel.classed('is-selected', false);
+  svg.transition().duration(EASE_MS).ease(d3.easeCubicOut)
+     .call(zoom.transform, d3.zoomIdentity);
+  renderRail(null);
+}
+
+// Exit path 1: clicking empty background (ignored if the pointer was dragged).
+let downAt = null;
+svg.on('mousedown', e => { downAt = [e.clientX, e.clientY]; });
+svg.on('click', e => {
+  if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  if (selectedId) deselect();
+});
+// Exit path 2: Escape.
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && selectedId) deselect(); });
+// Exit path 3: the Back control, created in renderRail below.
+
+document.getElementById('reset-view').addEventListener('click', deselect);
+
+/* =========================================================================
+   8. SIDE RAIL
+   ========================================================================= */
+
+function ledList(container) {
+  const ul = container.append('ul').attr('class', 'legend');
+  LED_STATES[faultMode ? 'fault' : 'normal'].forEach(l => {
+    const li = ul.append('li');
+    li.append('span').attr('class', 'dot').style('background', l.colour);
+    const txt = li.append('span');
+    txt.append('span').attr('class', 'state').text(l.code + ' \u2014 ' + l.state + '. ');
+    txt.append('span').attr('class', 'meaning').text(l.meaning);
+  });
+}
+
+function section(container, heading, build) {
+  container.append('h3').text(heading);
+  build(container);
+}
+
+function renderRail(part) {
+  railBody.html('');
+  d3.select('#rail').classed('fault', faultMode);
+
+  if (!part) {
+    if (faultMode) railBody.append('div').attr('class', 'banner')
+      .text('Fault mode is on. Indicators and connectors are shown in a failed state, and faults are listed first.');
+    railBody.append('div').attr('class', 'eyebrow').text('Overview');
+    railBody.append('h2').text(ORIENTATION.title);
+    railBody.append('p').attr('class', 'lede').text(ORIENTATION.lede);
+    section(railBody, 'What the indicators mean', ledList);
+    railBody.append('p').attr('class', 'caption').text(ORIENTATION.keyboard);
+    railBody.append('div').attr('class', 'note').text(ORIENTATION.disclaimer);
+    return;
+  }
+
+  railBody.append('button').attr('class', 'back').attr('type', 'button')
+    .text('\u2190 Back to overview')
+    .on('click', deselect);
+
+  if (faultMode) railBody.append('div').attr('class', 'banner')
+    .text('Fault mode: symptoms first.');
+
+  railBody.append('div').attr('class', 'eyebrow').text('Part detail');
+  railBody.append('h2').text(part.name);
+  railBody.append('p').attr('class', 'lede').text(part.function);
+
+  const faults = c => {
+    c.append('div').selectAll('div.fault-item').data(part.commonFaults).join('div')
+      .attr('class', 'fault-item')
+      .call(sel => {
+        sel.append('div').attr('class', 'sym').text(d => d.symptom);
+        sel.append('div').attr('class', 'fix').text(d => '\u2192 ' + d.check);
+      });
+  };
+
+  if (faultMode) section(railBody, 'Common faults', faults);
+
+  section(railBody, 'In', c => c.append('p').text(part.inputs));
+  section(railBody, 'Out', c => c.append('p').text(part.outputs));
+  section(railBody, 'How you recognise it on site', c => c.append('p').text(part.onSiteAppearance));
+
+  section(railBody, 'Typical values', c => {
+    c.append('ul').selectAll('li').data(part.typicalValues).join('li').text(d => d);
+    c.append('p').attr('class', 'caption').style('margin-top', '6px')
+     .text('Typical and vendor-dependent \u2014 illustrative ranges, not manufacturer specifications.');
+  });
+
+  if (part.id === 'status-leds') section(railBody, 'Indicator states shown now', ledList);
+
+  if (!faultMode) section(railBody, 'Common faults', faults);
+
+  section(railBody, 'Also called', c => c.append('p').text(part.vendorAliases));
+}
+
+/* =========================================================================
+   9. FAULT MODE
+   ========================================================================= */
+
+/* Repaints the LED cluster and reveals fault markers for the current mode. */
+function applyFaultVisuals() {
+  const set = LED_STATES[faultMode ? 'fault' : 'normal'];
+  d3.selectAll('circle.led')
+    .attr('fill', function () {
+      const s = set.find(l => l.code === this.getAttribute('data-code'));
+      return s ? s.colour : 'var(--led-off)';
+    });
+  d3.select('#part-status-leds').select('title')
+    .text(PARTS.find(p => p.id === 'status-leds').name + ': ' +
+          set.map(l => l.code + ' ' + l.state).join(', '));
+  d3.select('#part-status-leds')
+    .attr('aria-label', 'Status LED cluster. ' + set.map(l => l.code + ': ' + l.state + ', ' + l.meaning).join(' '));
+  stage.classList.toggle('fault', faultMode);
+}
+
+const faultBtn = document.getElementById('fault-toggle');
+faultBtn.addEventListener('click', () => {
+  faultMode = !faultMode;
+  faultBtn.setAttribute('aria-pressed', String(faultMode));
+  faultBtn.textContent = 'Fault mode: ' + (faultMode ? 'on' : 'off');
+  applyFaultVisuals();
+  renderRail(selectedId ? PARTS.find(p => p.id === selectedId) : null);
+});
+
+/* =========================================================================
+   10. OPTIONAL CANVAS OVERLAY — RF and fronthaul flow particles only
+   ========================================================================= */
+
+const canvas = document.getElementById('flow');
+const ctx = canvas.getContext('2d');
+let view = { s: 1, ox: 0, oy: 0 };
+let flows = [];
+
+/* Samples the drawn cable paths so particles can ride along them. */
+function buildFlows() {
+  const make = (sel, colour, kind) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const len = el.getTotalLength();
+    const pts = d3.range(0, 1.0001, 0.02).map(t => {
+      const p = el.getPointAtLength(t * len);
+      return [p.x, p.y];
+    });
+    return { pts, colour, kind, particles: d3.range(5).map(i => i / 5) };
+  };
+  flows = [
+    make('#part-coax-jumper path[stroke="#3d444b"]', '#d98c00', 'rf'),
+    make('#part-fibre-lc path[stroke="#59636e"]', '#0b6a7d', 'data')
+  ].filter(Boolean);
+}
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = r.width * dpr;
+  canvas.height = r.height * dpr;
+  canvas.style.width = r.width + 'px';
+  canvas.style.height = r.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const s = Math.min(r.width / VB.w, r.height / VB.h);
+  view = { s, ox: (r.width - VB.w * s) / 2, oy: (r.height - VB.h * s) / 2 };
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+
+function pointOn(flow, t) {
+  const n = flow.pts.length - 1;
+  const i = Math.min(n - 1, Math.floor(t * n));
+  const f = t * n - i;
+  const a = flow.pts[i], b = flow.pts[i + 1];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+
+function frame() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const k = currentTransform.k, tx = currentTransform.x, ty = currentTransform.y;
+  flows.forEach(flow => {
+    if (faultMode) return;                          // nothing is flowing in a fault
+    if (selectedId && selectedId !== 'coax-jumper' && selectedId !== 'fibre-lc') return;
+    flow.particles.forEach((t, i) => {
+      t += flow.kind === 'rf' ? 0.0035 : 0.0055;
+      if (t > 1) t -= 1;
+      flow.particles[i] = t;
+      const p = pointOn(flow, t);
+      const x = view.ox + view.s * (k * p[0] + tx);
+      const y = view.oy + view.s * (k * p[1] + ty);
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(1.6, 2.4 * view.s * k), 0, Math.PI * 2);
+      ctx.fillStyle = flow.colour;
+      ctx.globalAlpha = .85;
+      ctx.fill();
+    });
+  });
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================================
+   11. START
+   ========================================================================= */
+
+applyFaultVisuals();
+renderRail(null);
+buildFlows();
+
+if (!reduceMotion) {
+  partsG.classed('pulse-once', true);
+  setTimeout(() => partsG.classed('pulse-once', false), 1800);
+  requestAnimationFrame(frame);
+} else {
+  canvas.style.display = 'none';
+}
+</script>
+</body>
+</html>
