@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LTE Signal Chain — Field Reference</title>
+<style>
+:root{
+  --bg:#0E1620;
+  --panel:#141E2A;
+  --panel-2:#182432;
+  --line:#25384A;
+  --text:#E7EDF4;
+  --text-dim:#93A4B8;
+  --text-faint:#5D7085;
+  --blue-strong:#3D8BD6;
+  --blue:#5FA3E0;
+  --blue-fill:rgba(61,139,214,0.14);
+  --blue-fill-2:rgba(61,139,214,0.28);
+  --orange-strong:#D97A2E;
+  --orange:#E69A55;
+  --orange-fill:rgba(217,122,46,0.14);
+  --orange-fill-2:rgba(217,122,46,0.28);
+  --accent:#A78BFA;
+  --fault:#F0524A;
+  --glow:#F5C97A;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "Consolas", "Menlo", monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+body{min-height:100vh;}
+.app{display:flex;flex-direction:column;min-height:100vh;}
+header.top{
+  padding:18px 22px 12px 22px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(61,139,214,0.06), transparent);
+}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--text-faint);
+  text-transform:uppercase; margin-bottom:4px;
+}
+h1{font-size:20px; margin:0 0 12px 0; font-weight:650; letter-spacing:-0.01em;}
+.controls-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;}
+.tabgroup{display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:3px;}
+.tabgroup button{
+  background:transparent; border:none; color:var(--text-dim); font-family:var(--sans);
+  font-size:12.5px; padding:7px 12px; border-radius:6px; cursor:pointer; letter-spacing:0.01em;
+}
+.tabgroup button:hover{color:var(--text);}
+.tabgroup button.active{background:var(--blue-fill-2); color:var(--text); font-weight:600;}
+.tabgroup button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.dirgroup{display:flex; gap:4px; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:3px;}
+.dirgroup button{background:transparent;border:none;color:var(--text-dim);font-family:var(--mono);font-size:11.5px;padding:7px 11px;border-radius:6px;cursor:pointer;}
+.dirgroup button.active{background:var(--orange-fill-2); color:var(--text); font-weight:600;}
+.dirgroup button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+main.layout{display:flex; flex:1; min-height:0;}
+.diagram-col{flex:1; min-width:0; padding:16px 10px 24px 22px; overflow:auto;}
+.rail-col{
+  width:340px; flex-shrink:0; border-left:1px solid var(--line); background:var(--panel);
+  padding:18px; overflow-y:auto;
+}
+@media (max-width:820px){
+  main.layout{flex-direction:column;}
+  .rail-col{width:auto; border-left:none; border-top:1px solid var(--line);}
+  .diagram-col{padding:14px 10px;}
+}
+.legend{
+  display:flex; flex-wrap:wrap; gap:14px; align-items:center;
+  font-family:var(--mono); font-size:10.5px; color:var(--text-dim);
+  background:var(--panel); border:1px solid var(--line); border-radius:8px;
+  padding:8px 12px; margin-bottom:14px;
+}
+.legend .item{display:flex; align-items:center; gap:6px;}
+.swatch{width:11px; height:11px; border-radius:3px; display:inline-block;}
+.legend .arrow-sample{width:22px; height:2px; display:inline-block;}
+.chain-svg{width:100%; height:auto; display:block; font-family:var(--sans);}
+.chain-svg text{fill:var(--text); user-select:none;}
+.node-group{cursor:pointer;}
+.node-group:focus-visible .hitshape{outline:none; stroke:var(--accent); stroke-width:2.5px;}
+.node-group .hoverring{stroke:var(--blue); stroke-width:2px; opacity:0; transition:opacity .12s;}
+.node-group:hover .hoverring, .node-group.kbhover .hoverring{opacity:1;}
+.node-group.selected .selring{stroke:var(--accent); stroke-width:2.5px;}
+.node-group.dim{opacity:0.35;}
+.node-group.fault-hit .faultring{stroke:var(--fault); stroke-width:2.5px; filter:drop-shadow(0 0 4px var(--fault));}
+.pulse{animation:pulseAnim 1.8s ease-in-out 0s 2;}
+@keyframes pulseAnim{
+  0%{opacity:0.15;} 50%{opacity:0.55;} 100%{opacity:0.15;}
+}
+@media (prefers-reduced-motion: reduce){
+  .pulse{animation:none;}
+}
+.tooltip{
+  position:fixed; pointer-events:none; background:#0A121B; border:1px solid var(--line);
+  color:var(--text); font-family:var(--sans); font-size:12px; padding:7px 10px; border-radius:6px;
+  max-width:240px; z-index:50; display:none; box-shadow:0 6px 20px rgba(0,0,0,0.4);
+}
+.tooltip .tt-name{font-weight:650; margin-bottom:2px;}
+.tooltip .tt-line{color:var(--text-dim); font-size:11px;}
+.rail h2{font-size:14px; margin:0 0 8px 0; letter-spacing:-0.01em;}
+.rail .kicker{font-family:var(--mono); font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint); margin-bottom:4px;}
+.rail p{font-size:12.5px; line-height:1.55; color:var(--text-dim); margin:0 0 10px 0;}
+.rail .field-label{font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); margin:12px 0 3px 0;}
+.rail .tag{display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:4px; letter-spacing:0.06em; margin-right:6px;}
+.tag.digital{background:var(--blue-fill-2); color:var(--blue);}
+.tag.analogue{background:var(--orange-fill-2); color:var(--orange);}
+.tag.crossover{background:linear-gradient(90deg, var(--blue-fill-2), var(--orange-fill-2)); color:var(--glow);}
+.rail .fault-item{border-left:2px solid var(--fault); padding-left:8px; margin-bottom:8px; font-size:12px; color:var(--text-dim);}
+.rail .fault-item b{color:var(--text);}
+.rail button.closebtn{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); font-size:11px;
+  padding:5px 10px; border-radius:6px; cursor:pointer; margin-top:8px;
+}
+.rail button.closebtn:hover{color:var(--text);}
+.aux-panel{margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+.aux-panel h3{font-size:12px; margin:0 0 10px 0; font-family:var(--mono); text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim);}
+.scale-row{display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:11.5px;}
+.scale-row .lbl{width:150px; flex-shrink:0; color:var(--text-dim);}
+.scale-row .bar-track{flex:1; height:8px; background:var(--panel-2); border-radius:4px; position:relative;}
+.scale-row .bar-fill{position:absolute; top:0; left:0; height:100%; border-radius:4px;}
+.scale-row .val{width:150px; flex-shrink:0; font-family:var(--mono); font-size:10.5px; color:var(--text-faint); text-align:right;}
+.latency-bar{display:flex; height:26px; border-radius:6px; overflow:hidden; margin-bottom:8px;}
+.latency-seg{display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:10px; color:#081019;}
+.latency-key{display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--text-dim); font-family:var(--mono);}
+.fault-picker{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;}
+.fault-picker button{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); font-size:11.5px;
+  padding:6px 11px; border-radius:16px; cursor:pointer;
+}
+.fault-picker button.active{background:rgba(240,82,74,0.18); border-color:var(--fault); color:#FFD6D3;}
+.fault-picker button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.iq-visual{margin-top:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:10px;}
+.mod-picker{display:flex; gap:6px; margin:8px 0;}
+.mod-picker button{background:var(--panel); border:1px solid var(--line); color:var(--text-dim); font-size:11px; padding:4px 9px; border-radius:5px; cursor:pointer;}
+.mod-picker button.active{background:var(--blue-fill-2); color:var(--blue);}
+.transport-controls{display:flex; align-items:center; gap:8px; margin:10px 0 0 22px;}
+.transport-controls button{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); font-size:12px;
+  padding:6px 12px; border-radius:6px; cursor:pointer;
+}
+.transport-controls button:hover{color:var(--text);}
+.orient-note{font-size:12px; color:var(--text-faint); font-style:italic;}
+footer.foot{padding:8px 22px; font-family:var(--mono); font-size:10px; color:var(--text-faint); border-top:1px solid var(--line);}
+svg text.tick{font-family:var(--mono);}
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="eyebrow">O&amp;M field reference · LTE radio access network</div>
+    <h1>The LTE Signal Chain</h1>
+    <div class="controls-row">
+      <div class="tabgroup" role="tablist" aria-label="Diagram layer">
+        <button data-layer="chain" class="active" role="tab" aria-selected="true">Signal chain</button>
+        <button data-layer="scale" role="tab" aria-selected="false">Scale</button>
+        <button data-layer="latency" role="tab" aria-selected="false">Latency budget</button>
+        <button data-layer="fault" role="tab" aria-selected="false">Fault localisation</button>
+        <button data-layer="physical" role="tab" aria-selected="false">Physical mapping</button>
+      </div>
+      <div class="dirgroup" role="group" aria-label="Direction">
+        <button data-dir="dl">DOWNLINK</button>
+        <button data-dir="ul">UPLINK</button>
+        <button data-dir="both" class="active">BOTH</button>
+      </div>
+      <div class="transport-controls" aria-label="Signal animation controls">
+        <button id="playBtn" aria-pressed="false">▶ Play signal</button>
+        <button id="stepBtn">Step ⏭</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="diagram-col">
+      <div class="legend" id="legend"></div>
+      <svg id="chainSvg" class="chain-svg" role="img" aria-label="Two track diagram of the LTE downlink and uplink signal chains"></svg>
+      <div id="auxPanel"></div>
+    </div>
+    <aside class="rail-col rail" id="rail" aria-live="polite"></aside>
+  </main>
+  <footer class="foot">All numeric values are representative ranges for typical LTE macro deployments, not specification values. Use Tab to move through the chain, Enter/Space to open detail, Escape to close, Arrow keys to move between the representation and hardware tracks.</footer>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<canvas id="fxCanvas" style="position:absolute; pointer-events:none; z-index:5;"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+/* ============================================================
+   CHAIN — single source of truth for all diagram content.
+   Every string, figure and fault mapping used by the renderer
+   lives here; drawing code below reads from this and hardcodes
+   nothing about the domain content itself.
+   ============================================================ */
+
+const CHAIN_DOWNLINK = [
+  { id:'dl-ip-core', kind:'stage', domain:'digital', glyph:'packet', pos:1,
+    name:'IP packet (core network)',
+    whatItIs:'A standard IP packet carrying the user\u2019s payload, wrapped in the core network\u2019s GTP-U tunnel.',
+    livesIn:'Core network router', hwGlyph:'core',
+    typicalValues:'~1500 byte MTU, GTP-U/UDP/IP encapsulation (typical, vendor-dependent)',
+    observableAs:'Packet counters and GTP-U tunnel statistics on the core router / UPF.' },
+
+  { id:'dl-backhaul', kind:'transition', transitionType:'transport', domain:'digital', glyph:'arrowTransport', pos:2,
+    name:'Backhaul link to the site',
+    whatChanges:'Nothing about the payload changes \u2014 the IP packet is carried unchanged across the metro backhaul network to the cell site.',
+    performedBy:'Backhaul network (metro fibre ring or microwave hop)', hwGlyph:'fibre',
+    whyNeeded:'Cell sites are rarely co-located with the core; traffic must transit an aggregation network to reach the BBU/DU.',
+    commonFaults:[
+      {symptom:'Site alarms as unreachable', check:'Backhaul link light / microwave RSL'},
+      {symptom:'Elevated jitter on voice bearers', check:'Backhaul congestion or QoS marking'}],
+    userSymptom:'Whole-site outage, or performance that degrades sharply under load',
+    latencyContribution:'~1\u20135 ms (typical, vendor-dependent)' },
+
+  { id:'dl-bbu-du', kind:'stage', domain:'digital', glyph:'chip', pos:3,
+    name:'Arrival at BBU/DU',
+    whatItIs:'The packet is terminated at the baseband unit and handed to the scheduler for ciphering and segmentation.',
+    livesIn:'BBU / DU cabinet', hwGlyph:'cabinet',
+    typicalValues:'Scheduling granularity 1 ms (TTI); ciphering AES / SNOW3G (typical)',
+    observableAs:'eNodeB scheduler logs, PDCP/RLC counters on the BBU.' },
+
+  { id:'dl-baseband-mod', kind:'transition', transitionType:'transformation', domain:'digital', glyph:'arrowTransform', pos:4,
+    name:'Baseband processing \u2192 modulation',
+    whatChanges:'The packet is segmented, ciphered, channel-coded and mapped onto OFDMA resource elements. The result is no longer a packet at all \u2014 it is a stream of complex baseband samples.',
+    performedBy:'Baseband processing chain in the BBU/DU (PDCP \u2192 RLC \u2192 MAC \u2192 PHY)', hwGlyph:'cabinet',
+    whyNeeded:'Radio transmission needs a modulated waveform, not a packet structure \u2014 this is where data becomes signal.',
+    commonFaults:[
+      {symptom:'High block error rate reported by devices', check:'MCS selection / channel coding configuration'},
+      {symptom:'Cell throughput far below theoretical', check:'Scheduler configuration, PRB utilisation'}],
+    userSymptom:'Slow throughput, visible retransmissions',
+    latencyContribution:'~1\u20134 ms scheduling and processing (typical)' },
+
+  { id:'dl-iq-samples', kind:'stage', domain:'digital', glyph:'iq', pos:5, hasIQVisual:true,
+    name:'IQ samples (digital baseband)',
+    whatItIs:'Complex baseband samples \u2014 pairs of In-phase and Quadrature values that digitally describe the modulated waveform, before it becomes RF.',
+    livesIn:'BBU/DU \u2192 fronthaul link', hwGlyph:'cabinet',
+    typicalValues:'e.g. 15.36 Msps for a 10 MHz LTE carrier; 15-bit I/Q resolution (typical, vendor-dependent)',
+    observableAs:'Not directly visible to O&M tools \u2014 inferred from EVM and constellation plots at RF test points.' },
+
+  { id:'dl-cpri', kind:'transition', transitionType:'transport', domain:'digital', glyph:'arrowTransport', pos:6,
+    name:'CPRI / eCPRI over fibre',
+    whatChanges:'Nothing about the sample values changes \u2014 they are serialised and carried, bit for bit, over fibre to the tower-top radio.',
+    performedBy:'CPRI or eCPRI interface over single-mode fibre', hwGlyph:'fibre',
+    whyNeeded:'Modern sites separate baseband processing (BBU/DU) from the radio (RRU), which sits at the tower top to minimise RF feeder loss.',
+    commonFaults:[
+      {symptom:'RRU alarms link-down', check:'Fibre continuity / SFP optical power'},
+      {symptom:'Intermittent cell resets', check:'Fibre connector cleanliness, bend radius'}],
+    userSymptom:'Sector down, or a cell that flaps in and out of service',
+    latencyContribution:'~0.1\u20130.5 ms (typical, distance-dependent)' },
+
+  { id:'dl-dac-upconvert', kind:'transition', transitionType:'transformation', domain:'crossover', glyph:'arrowTransform', pos:7, crossover:true,
+    name:'DAC and upconversion',
+    whatChanges:'The digital I/Q stream is converted to a continuous analogue waveform (DAC) and mixed up to the RF carrier frequency. This is the digital\u2192analogue boundary: nothing before this point exists as a physical wave, and everything after does.',
+    performedBy:'DAC and RF upconverter inside the RRU (Remote Radio Unit)', hwGlyph:'rru',
+    whyNeeded:'Antennas radiate continuous analogue waveforms, not digital sample streams.',
+    commonFaults:[
+      {symptom:'Elevated EVM across the whole sector', check:'DAC / upconverter calibration, local oscillator stability'},
+      {symptom:'Spurious emissions or interference to neighbours', check:'Filter and mixer alignment'}],
+    userSymptom:'Poor throughput sector-wide despite apparently good coverage',
+    latencyContribution:'~0.05 ms (typical)' },
+
+  { id:'dl-rf-output', kind:'stage', domain:'analogue', glyph:'rf', pos:8,
+    name:'Analogue RF at RRU output',
+    whatItIs:'Amplified analogue RF carrier, ready for radiation, measured after the power amplifier.',
+    livesIn:'RRU (tower top)', hwGlyph:'rru',
+    typicalValues:'RRU output power ~40\u201346 dBm, i.e. 10\u201340 W per branch (typical, vendor-dependent)',
+    observableAs:'RRU output power alarms, PA temperature and VSWR telemetry.' },
+
+  { id:'dl-coax', kind:'transition', transitionType:'transport', domain:'analogue', glyph:'arrowTransport', pos:9,
+    name:'Coax jumper to the antenna',
+    whatChanges:'Nothing about the RF signal changes \u2014 it is carried, with some insertion loss, over a short coax jumper to the antenna.',
+    performedBy:'Coax jumper cable and connectors between RRU and antenna', hwGlyph:'coax',
+    whyNeeded:'The RRU and antenna are separate units on the tower and must be cabled together.',
+    commonFaults:[
+      {symptom:'Elevated VSWR alarm', check:'Connector torque, weatherproofing, water ingress'},
+      {symptom:'Reduced cell range', check:'Jumper loss or corrosion'}],
+    userSymptom:'Reduced coverage radius',
+    latencyContribution:'negligible' },
+
+  { id:'dl-antenna-radiate', kind:'transition', transitionType:'transformation', domain:'analogue', glyph:'arrowTransform', pos:10,
+    name:'Antenna \u2192 radiated beam',
+    whatChanges:'The guided RF wave on the coax becomes a radiated electromagnetic beam with a defined pattern, gain and tilt \u2014 energy leaves the hardware entirely.',
+    performedBy:'Sector antenna (passive panel or active antenna system)', hwGlyph:'antenna',
+    whyNeeded:'Radiation is what actually reaches the handset; everything upstream only prepares the signal for this moment.',
+    commonFaults:[
+      {symptom:'One sector consistently underperforming', check:'Antenna tilt / azimuth, physical damage'},
+      {symptom:'Uneven coverage footprint', check:'Antenna pattern versus planned tilt'}],
+    userSymptom:'Weak or absent coverage in part of the sector',
+    latencyContribution:'negligible' },
+
+  { id:'dl-air', kind:'stage', domain:'analogue', glyph:'air', pos:11,
+    name:'Propagation through air',
+    whatItIs:'The radiated beam propagating through free space and the physical environment, losing energy and being distorted along the way.',
+    livesIn:'Air interface (Uu)', hwGlyph:'air',
+    typicalValues:'Path loss ~120\u2013145 dB at typical urban macro cell edge (typical, vendor-dependent)',
+    observableAs:'Drive-test RSRP / RSRQ / SINR logs, UE measurement reports.' },
+
+  { id:'dl-handset-rx', kind:'transition', transitionType:'transformation', domain:'crossover', glyph:'arrowTransform', pos:12, crossover:true,
+    name:'Handset antenna \u2192 LNA \u2192 ADC \u2192 demodulation',
+    whatChanges:'The weak analogue RF picked up by the handset antenna is amplified (LNA), converted back to digital (ADC), and demodulated \u2014 reversing steps 7 and 4 to recover the original IP packet.',
+    performedBy:'Handset RF front-end and baseband modem', hwGlyph:'handset',
+    whyNeeded:'The device must turn the received wave back into usable digital data.',
+    commonFaults:[
+      {symptom:'High device-reported error rate despite good RSRP', check:'Handset RF front-end / antenna design, interference'},
+      {symptom:'One device affected, others fine on same cell', check:'Device-specific fault, not the network'}],
+    userSymptom:'Slow throughput or a dropped session despite apparently good signal bars',
+    latencyContribution:'~1\u20133 ms (typical)' },
+
+  { id:'dl-recovered', kind:'stage', domain:'digital', glyph:'handsetPacket', pos:13,
+    name:'Recovered packet at the handset',
+    whatItIs:'The original IP packet, reconstructed and handed to the handset\u2019s application layer.',
+    livesIn:'Handset', hwGlyph:'handset',
+    typicalValues:'\u2014',
+    observableAs:'App-level throughput, ping and packet loss as experienced by the user.' },
+];
+
+const CHAIN_UPLINK = [
+  { id:'ul-app-packet', kind:'stage', domain:'digital', glyph:'handsetPacket', pos:1,
+    name:'IP packet generated at the handset',
+    whatItIs:'A packet created by the handset application layer \u2014 for example a TCP acknowledgement or an upload chunk.',
+    livesIn:'Handset', hwGlyph:'handset',
+    typicalValues:'\u2014',
+    observableAs:'App-level upload throughput as experienced by the user.' },
+
+  { id:'ul-mod-upconvert', kind:'transition', transitionType:'transformation', domain:'crossover', glyph:'arrowTransform', pos:2, crossover:true,
+    name:'Handset modulation and upconversion',
+    whatChanges:'The handset baseband modulates the packet onto I/Q samples and upconverts to RF \u2014 the same kind of step as the downlink DAC stage, but through a transmit chain that is far weaker and battery-constrained.',
+    performedBy:'Handset baseband and RF front-end, power-class limited', hwGlyph:'handset',
+    whyNeeded:'The handset must turn its data into a radio wave the network can receive.',
+    commonFaults:[
+      {symptom:'Uplink throughput far below downlink on the same device', check:'UE transmit power headroom (PHR) reports'},
+      {symptom:'VoLTE uplink audio choppy, downlink fine', check:'UE transmit power limiting / thermal throttling'}],
+    userSymptom:'Uploads or uplink voice audio degrade well before downlink does',
+    latencyContribution:'~1\u20134 ms (typical)',
+    asymmetryNote:'Handset transmit power is typically only ~23 dBm (about 0.2 W) \u2014 roughly 40\u201350 dB below the RRU\u2019s downlink power. This power amplifier is small, shares the phone\u2019s battery and thermal budget, and is usually why uplink, not downlink, sets the true coverage edge.' },
+
+  { id:'ul-air', kind:'stage', domain:'analogue', glyph:'air', pos:3,
+    name:'Propagation through air (uplink)',
+    whatItIs:'The handset\u2019s weak radiated signal propagating back to the site, subject to the same path loss and fading as downlink, starting from a much lower transmit power.',
+    livesIn:'Air interface (Uu)', hwGlyph:'air',
+    typicalValues:'Same path loss as downlink (~120\u2013145 dB typical), applied to a far smaller transmit power',
+    observableAs:'eNodeB-side uplink RSSI / SINR measurements, UE power headroom reports.' },
+
+  { id:'ul-antenna-rx', kind:'transition', transitionType:'transformation', domain:'analogue', glyph:'arrowTransform', pos:4,
+    name:'Antenna reception (receive diversity)',
+    whatChanges:'The sector antenna array captures the very weak uplink wave; multiple receive branches are usually combined to recover enough signal-to-noise ratio.',
+    performedBy:'Sector antenna, typically with 2\u20134 branch receive diversity or MIMO', hwGlyph:'antenna',
+    whyNeeded:'A single receive path often cannot capture enough energy from a low-power handset transmitter reliably.',
+    commonFaults:[
+      {symptom:'High uplink noise floor on one branch', check:'Receive antenna branch / jumper for that path'},
+      {symptom:'Uplink SINR much worse than downlink RSRQ', check:'Receive diversity configuration, external interference'}],
+    userSymptom:'Uploads and call quality degrade before downlink coverage does',
+    latencyContribution:'negligible' },
+
+  { id:'ul-coax', kind:'transition', transitionType:'transport', domain:'analogue', glyph:'arrowTransport', pos:5,
+    name:'Coax jumper to the RRU',
+    whatChanges:'Nothing about the RF signal changes \u2014 it is carried, with insertion loss, from antenna to RRU.',
+    performedBy:'Coax jumper cable and connectors', hwGlyph:'coax',
+    whyNeeded:'The antenna and RRU are separate units on the tower.',
+    commonFaults:[
+      {symptom:'Elevated uplink VSWR alarm', check:'Connector torque, water ingress'},
+      {symptom:'Uplink range shorter than downlink range on same sector', check:'Jumper loss on the receive path'}],
+    userSymptom:'Uplink-limited coverage edge',
+    latencyContribution:'negligible' },
+
+  { id:'ul-rf-input', kind:'stage', domain:'analogue', glyph:'rf', pos:6,
+    name:'Very weak analogue RF at RRU input',
+    whatItIs:'The received analogue RF at the RRU, typically tens of dB below the RRU\u2019s own downlink transmit level.',
+    livesIn:'RRU (tower top)', hwGlyph:'rru',
+    typicalValues:'Receiver sensitivity around \u2212100 to \u2212110 dBm at the RRU input (typical, vendor-dependent)',
+    observableAs:'RRU receive-path RSSI telemetry, uplink noise-rise counters.' },
+
+  { id:'ul-adc-downconvert', kind:'transition', transitionType:'transformation', domain:'crossover', glyph:'arrowTransform', pos:7, crossover:true,
+    name:'LNA, downconversion and ADC',
+    whatChanges:'The RRU\u2019s low-noise amplifier boosts the faint signal, downconverts it from RF, and the ADC digitises it back into I/Q samples \u2014 the analogue\u2192digital crossover for the uplink direction.',
+    performedBy:'LNA, downconverter and ADC inside the RRU', hwGlyph:'rru',
+    whyNeeded:'Baseband processing downstream needs a digital sample stream, not an analogue wave.',
+    commonFaults:[
+      {symptom:'Elevated uplink noise floor sector-wide', check:'RRU LNA fault, external interference ingress'},
+      {symptom:'Uplink BLER high despite adequate RSRP', check:'ADC saturation / receiver overload'}],
+    userSymptom:'High uplink noise reports, choppy uplink voice, slow uploads',
+    latencyContribution:'~0.05 ms (typical)' },
+
+  { id:'ul-iq-samples', kind:'stage', domain:'digital', glyph:'iq', pos:8, hasIQVisual:true,
+    name:'IQ samples (uplink digital baseband)',
+    whatItIs:'Complex baseband samples representing the received uplink waveform digitally, ready to be carried back to the BBU/DU.',
+    livesIn:'RRU \u2192 fronthaul link', hwGlyph:'rru',
+    typicalValues:'Same order of sample rate as downlink for the given carrier bandwidth (typical, vendor-dependent)',
+    observableAs:'Not directly visible \u2014 inferred from uplink EVM at test points.' },
+
+  { id:'ul-cpri', kind:'transition', transitionType:'transport', domain:'digital', glyph:'arrowTransport', pos:9,
+    name:'CPRI / eCPRI over fibre (uplink)',
+    whatChanges:'Nothing about the sample values changes \u2014 carried, bit for bit, back to the BBU/DU.',
+    performedBy:'CPRI or eCPRI interface over fibre', hwGlyph:'fibre',
+    whyNeeded:'The baseband processing that demodulates uplink samples lives in the BBU/DU, not the tower-top RRU.',
+    commonFaults:[
+      {symptom:'RRU alarms link-down (affects both directions)', check:'Fibre continuity / SFP optical power'}],
+    userSymptom:'Sector down',
+    latencyContribution:'~0.1\u20130.5 ms (typical, distance-dependent)' },
+
+  { id:'ul-bbu-rx', kind:'stage', domain:'digital', glyph:'chip', pos:10,
+    name:'Arrival at BBU/DU baseband',
+    whatItIs:'The uplink I/Q stream arrives at the baseband unit for channel estimation and demodulation.',
+    livesIn:'BBU / DU cabinet', hwGlyph:'cabinet',
+    typicalValues:'\u2014',
+    observableAs:'Uplink SINR and BLER counters at the BBU.' },
+
+  { id:'ul-demod-decode', kind:'transition', transitionType:'transformation', domain:'digital', glyph:'arrowTransform', pos:11,
+    name:'Demodulation and decoding',
+    whatChanges:'The I/Q samples are demodulated, channel-decoded and deciphered back into the original packet bits \u2014 reversing the downlink baseband step.',
+    performedBy:'Baseband processing chain in the BBU/DU (PHY \u2192 MAC \u2192 RLC \u2192 PDCP)', hwGlyph:'cabinet',
+    whyNeeded:'Recovers usable data from the modulated waveform.',
+    commonFaults:[
+      {symptom:'High uplink BLER at the scheduler', check:'MCS selection too aggressive for uplink SINR'},
+      {symptom:'Retransmission rate rising under load', check:'Uplink interference / PRB congestion'}],
+    userSymptom:'Slow uploads, retransmissions',
+    latencyContribution:'~1\u20134 ms (typical)' },
+
+  { id:'ul-backhaul', kind:'transition', transitionType:'transport', domain:'digital', glyph:'arrowTransport', pos:12,
+    name:'Backhaul link to the core',
+    whatChanges:'Nothing about the payload changes \u2014 carried unchanged back across the backhaul network.',
+    performedBy:'Backhaul network (metro fibre ring or microwave hop)', hwGlyph:'fibre',
+    whyNeeded:'The core network functions the packet needs live centrally, not at the site.',
+    commonFaults:[
+      {symptom:'Site alarms as unreachable', check:'Backhaul link light / microwave RSL'}],
+    userSymptom:'Whole-site outage',
+    latencyContribution:'~1\u20135 ms (typical, vendor-dependent)' },
+
+  { id:'ul-core-packet', kind:'stage', domain:'digital', glyph:'packet', pos:13,
+    name:'Packet delivered to the core network',
+    whatItIs:'The reconstructed IP packet, delivered into the mobile core for routing onward.',
+    livesIn:'Core network router', hwGlyph:'core',
+    typicalValues:'\u2014',
+    observableAs:'Packet counters on the core router / UPF.' },
+];
+
+const FAULT_SYMPTOMS = [
+  { id:'no-service', label:'No service',
+    hits:['dl-backhaul','dl-bbu-du','dl-cpri','dl-dac-upconvert','dl-antenna-radiate','ul-cpri','ul-backhaul'] },
+  { id:'slow-throughput', label:'Slow throughput',
+    hits:['dl-baseband-mod','dl-dac-upconvert','dl-air','dl-handset-rx','ul-mod-upconvert','ul-demod-decode'] },
+  { id:'dropped-call', label:'Dropped call',
+    hits:['dl-air','dl-antenna-radiate','ul-antenna-rx','ul-mod-upconvert','dl-cpri'] },
+  { id:'sector-down', label:'One sector down',
+    hits:['dl-cpri','dl-rf-output','dl-coax','dl-antenna-radiate','ul-coax'] },
+  { id:'uplink-noise', label:'High uplink noise',
+    hits:['ul-adc-downconvert','ul-antenna-rx','ul-rf-input','ul-mod-upconvert'] },
+];
+
+const HW_ICON_LABEL = {
+  core:'Core router', fibre:'Fibre / backhaul', cabinet:'BBU/DU cabinet', rru:'RRU (tower top)',
+  coax:'Coax jumper', antenna:'Antenna', air:'Air interface', handset:'Handset'
+};
+
+/* ============================================================
+   State
+   ============================================================ */
+const state = {
+  layer: 'chain',
+  dir: 'both',
+  selectedId: null,
+  faultId: null,
+  modOrder: 'QPSK',
+  playing: false,
+  step: 0,
+};
+const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const svg = d3.select('#chainSvg');
+const tooltip = d3.select('#tooltip');
+const railEl = document.getElementById('rail');
+const auxEl = document.getElementById('auxPanel');
+let firstLoadPulseDone = false;
+
+function allNodes(){ return CHAIN_DOWNLINK.concat(CHAIN_UPLINK); }
+function findNode(id){ return allNodes().find(n => n.id === id); }
+function domainTag(n){
+  if (n.domain === 'crossover') return 'digital \u2192 analogue';
+  return n.domain;
+}
+
+/* ============================================================
+   Icon drawing — one-line comment above each stating what it renders
+   ============================================================ */
+
+// Renders the representation-track icon for a stage node (envelope, chip, waveform, etc.)
+function drawStageIcon(sel, glyph, color){
+  const s = sel;
+  switch(glyph){
+    case 'packet':
+      s.append('rect').attr('x',-16).attr('y',-11).attr('width',32).attr('height',22).attr('rx',2)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      s.append('path').attr('d','M -16 -11 L 0 2 L 16 -11').attr('fill','none').attr('stroke',color).attr('stroke-width',0.75);
+      break;
+    case 'chip':
+      s.append('rect').attr('x',-14).attr('y',-14).attr('width',28).attr('height',28).attr('rx',3)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      for(let i=-9;i<=9;i+=6){
+        s.append('line').attr('x1',i).attr('y1',-14).attr('x2',i).attr('y2',-18).attr('stroke',color).attr('stroke-width',0.75);
+        s.append('line').attr('x1',i).attr('y1',14).attr('x2',i).attr('y2',18).attr('stroke',color).attr('stroke-width',0.75);
+      }
+      s.append('circle').attr('r',3).attr('fill','none').attr('stroke',color).attr('stroke-width',0.75);
+      break;
+    case 'iq':
+      s.append('line').attr('x1',-16).attr('y1',0).attr('x2',16).attr('y2',0).attr('stroke',color).attr('stroke-width',0.75);
+      s.append('line').attr('x1',0).attr('y1',-16).attr('x2',0).attr('y2',16).attr('stroke',color).attr('stroke-width',0.75);
+      [[6,4],[-8,-6],[10,-9],[-5,8],[2,-3]].forEach(p=>{
+        s.append('circle').attr('cx',p[0]).attr('cy',p[1]).attr('r',1.6).attr('fill',color);
+      });
+      break;
+    case 'rf': {
+      let d = 'M -16 0 ';
+      for(let x=-16;x<=16;x+=2){ d += 'L '+x+' '+(Math.sin((x+16)/32*Math.PI*3)*8)+' '; }
+      s.append('path').attr('d',d).attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      break;
+    }
+    case 'air':
+      [6,11,16].forEach((r,i)=>{
+        s.append('path').attr('d','M '+(-r)+' '+(r*0.6)+' A '+r+' '+r+' 0 0 1 '+r+' '+(r*0.6))
+          .attr('fill','none').attr('stroke',color).attr('stroke-width',1.2).attr('opacity', 1-i*0.22);
+      });
+      s.append('circle').attr('cy',8).attr('r',1.6).attr('fill',color);
+      break;
+    case 'handset':
+    case 'handsetPacket':
+      s.append('rect').attr('x',-9).attr('y',-16).attr('width',18).attr('height',32).attr('rx',3)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      s.append('line').attr('x1',-9).attr('y1',10).attr('x2',9).attr('y2',10).attr('stroke',color).attr('stroke-width',0.75);
+      if (glyph === 'handsetPacket'){
+        s.append('rect').attr('x',-5).attr('y',-8).attr('width',10).attr('height',7).attr('rx',1)
+          .attr('fill','none').attr('stroke',color).attr('stroke-width',0.75);
+      }
+      break;
+    default:
+      s.append('circle').attr('r',12).attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+  }
+}
+
+// Renders the hardware-track icon (core router, fibre, cabinet, RRU, coax, antenna, air, handset)
+function drawHwIcon(sel, glyph, color){
+  const s = sel;
+  switch(glyph){
+    case 'core':
+      s.append('rect').attr('x',-14).attr('y',-12).attr('width',28).attr('height',24).attr('rx',2)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      [-5,0,5].forEach(y=> s.append('line').attr('x1',-10).attr('y1',y).attr('x2',10).attr('y2',y).attr('stroke',color).attr('stroke-width',0.75));
+      break;
+    case 'fibre':
+      s.append('line').attr('x1',-18).attr('y1',0).attr('x2',18).attr('y2',0)
+        .attr('stroke',color).attr('stroke-width',2).attr('stroke-dasharray','4 3');
+      s.append('circle').attr('cx',-18).attr('cy',0).attr('r',2.4).attr('fill',color);
+      s.append('circle').attr('cx',18).attr('cy',0).attr('r',2.4).attr('fill',color);
+      break;
+    case 'cabinet':
+      s.append('rect').attr('x',-12).attr('y',-16).attr('width',24).attr('height',32).attr('rx',2)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      for(let y=-10;y<=10;y+=5) s.append('line').attr('x1',-8).attr('y1',y).attr('x2',8).attr('y2',y).attr('stroke',color).attr('stroke-width',0.6);
+      break;
+    case 'rru':
+      s.append('rect').attr('x',-13).attr('y',-9).attr('width',26).attr('height',18).attr('rx',2)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      s.append('line').attr('x1',0).attr('y1',-9).attr('x2',0).attr('y2',-17).attr('stroke',color).attr('stroke-width',1);
+      s.append('circle').attr('cx',0).attr('cy',-17).attr('r',1.8).attr('fill',color);
+      break;
+    case 'coax':
+      s.append('line').attr('x1',-16).attr('y1',0).attr('x2',16).attr('y2',0).attr('stroke',color).attr('stroke-width',2.5);
+      s.append('circle').attr('cx',-16).attr('cy',0).attr('r',2).attr('fill','none').attr('stroke',color).attr('stroke-width',1);
+      s.append('circle').attr('cx',16).attr('cy',0).attr('r',2).attr('fill','none').attr('stroke',color).attr('stroke-width',1);
+      break;
+    case 'antenna':
+      s.append('path').attr('d','M 0 12 L -9 -10 L 9 -10 Z').attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      [4,8].forEach(dx=>{
+        s.append('line').attr('x1',-dx).attr('y1',-16).attr('x2',-dx*1.4).attr('y2',-22).attr('stroke',color).attr('stroke-width',0.75);
+        s.append('line').attr('x1',dx).attr('y1',-16).attr('x2',dx*1.4).attr('y2',-22).attr('stroke',color).attr('stroke-width',0.75);
+      });
+      break;
+    case 'air':
+      [7,13].forEach((r,i)=>{
+        s.append('circle').attr('r',r).attr('fill','none').attr('stroke',color).attr('stroke-width',1).attr('opacity',1-i*0.35).attr('stroke-dasharray','2 3');
+      });
+      break;
+    case 'handset':
+      s.append('rect').attr('x',-8).attr('y',-14).attr('width',16).attr('height',28).attr('rx',3)
+        .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+      break;
+    default:
+      s.append('rect').attr('x',-12).attr('y',-10).attr('width',24).attr('height',20).attr('rx',2).attr('fill','none').attr('stroke',color).attr('stroke-width',1.5);
+  }
+}
+
+// Renders a transition node as an arrow-shaped marker: solid+glyph for transformation, dashed/tube for transport
+function drawTransitionShape(sel, node, color){
+  const w = 30, h = 20;
+  if (node.transitionType === 'transformation'){
+    sel.append('path')
+      .attr('d', `M ${-w/2} ${-h/2} L ${w/2-6} ${-h/2} L ${w/2} 0 L ${w/2-6} ${h/2} L ${-w/2} ${h/2} Z`)
+      .attr('fill', node.crossover ? 'url(#crossoverGrad)' : color)
+      .attr('fill-opacity', node.crossover ? 0.9 : 0.22)
+      .attr('stroke', color).attr('stroke-width',1.5);
+    // conversion glyph: small circle becoming a square, showing "form changes here"
+    sel.append('circle').attr('cx',-6).attr('cy',0).attr('r',3).attr('fill','none').attr('stroke',color).attr('stroke-width',1);
+    sel.append('rect').attr('x',3).attr('y',-3).attr('width',6).attr('height',6).attr('fill','none').attr('stroke',color).attr('stroke-width',1);
+  } else {
+    sel.append('path')
+      .attr('d', `M ${-w/2} ${-h/2} L ${w/2-6} ${-h/2} L ${w/2} 0 L ${w/2-6} ${h/2} L ${-w/2} ${h/2} Z`)
+      .attr('fill','none').attr('stroke',color).attr('stroke-width',1.5).attr('stroke-dasharray','3 2.5');
+  }
+}
+
+/* ============================================================
+   Layout
+   ============================================================ */
+const N = 13;
+const MARGIN_L = 60, MARGIN_R = 30;
+
+function isNarrow(){ return window.innerWidth < 820; }
+
+// Computes screen-space coordinates for every visible node, horizontal or vertical orientation
+function computeLayout(){
+  const narrow = isNarrow();
+  const showDL = state.dir === 'both' || state.dir === 'dl';
+  const showUL = state.dir === 'both' || state.dir === 'ul';
+  const rows = [];
+  if (showDL) rows.push({ dirKey:'dl', nodes: CHAIN_DOWNLINK, reverseSpatial:false, label:'DOWNLINK — core \u2192 handset', arrowRight:true });
+  if (showUL) rows.push({ dirKey:'ul', nodes: CHAIN_UPLINK, reverseSpatial:true, label:'UPLINK — handset \u2192 core (not a mirror: different power budget, hardware, faults)', arrowRight:false });
+
+  const placed = [];
+  let width, height;
+
+  if (!narrow){
+    const trackGap = 78;
+    const rowPairH = 190;
+    width = 1360;
+    height = rows.length * rowPairH + 40;
+    const usable = width - MARGIN_L - MARGIN_R;
+    const step = usable / (N - 1);
+    rows.forEach((row, ri) => {
+      const repY = 70 + ri * rowPairH;
+      const hwY = repY + trackGap;
+      row.nodes.forEach(node => {
+        const idx = row.reverseSpatial ? (N - node.pos) : (node.pos - 1);
+        const x = MARGIN_L + idx * step;
+        placed.push({ node, row, repX:x, repY, hwX:x, hwY, orientation:'h' });
+      });
+    });
+  } else {
+    const colGap = 120;
+    const stepV = 74;
+    width = 300;
+    const rowBlockH = 40 + N * stepV;
+    height = rows.length * rowBlockH + 20;
+    rows.forEach((row, ri) => {
+      const baseY = 40 + ri * rowBlockH;
+      const repX = 70, hwX = repX + colGap;
+      row.nodes.forEach(node => {
+        const idx = node.pos - 1;
+        const y = baseY + idx * stepV;
+        placed.push({ node, row, repX, repY:y, hwX, hwY:y, orientation:'v' });
+      });
+    });
+  }
+  return { placed, rows, width, height, narrow };
+}
+
+function colorForDomain(d){
+  if (d === 'digital') return 'var(--blue)';
+  if (d === 'analogue') return 'var(--orange)';
+  return 'var(--glow)';
+}
+function strokeVar(colorStr){
+  // resolves a CSS variable reference to a concrete hex for SVG fill/stroke where needed
+  const m = colorStr.match(/var\((--[a-z0-9-]+)\)/);
+  if (!m) return colorStr;
+  return getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
+}
+
+/* ============================================================
+   Main render
+   ============================================================ */
+function render(){
+  const layout = computeLayout();
+  svg.attr('viewBox', `0 0 ${layout.width} ${layout.height}`);
+  svg.selectAll('*').remove();
+
+  const defs = svg.append('defs');
+  const grad = defs.append('linearGradient').attr('id','crossoverGrad').attr('x1','0%').attr('x2','100%');
+  grad.append('stop').attr('offset','0%').attr('stop-color', strokeVar('var(--blue)'));
+  grad.append('stop').attr('offset','100%').attr('stop-color', strokeVar('var(--orange)'));
+  const glowFilter = defs.append('filter').attr('id','glowFx').attr('x','-60%').attr('y','-60%').attr('width','220%').attr('height','220%');
+  glowFilter.append('feGaussianBlur').attr('stdDeviation','5').attr('result','blur');
+  glowFilter.append('feMerge').selectAll('feMergeNode').data(['blur','SourceGraphic']).enter().append('feMergeNode').attr('in', dd=>dd);
+
+  // baseline flow guides + row labels
+  layout.rows.forEach((row, ri) => {
+    const items = layout.placed.filter(p => p.row === row);
+    if (!items.length) return;
+    const repYs = items.map(i=>i.repY);
+    const y = repYs[0];
+    if (layout.orientation !== 'v' && !layout.narrow){
+      const xs = items.map(i=>i.repX);
+      const x0 = Math.min(...xs) - 20, x1 = Math.max(...xs) + 20;
+      svg.append('line').attr('x1', row.arrowRight? x0 : x1).attr('x2', row.arrowRight? x1 : x0)
+        .attr('y1', y-46).attr('y2', y-46)
+        .attr('stroke','var(--text-faint)'.replace('var(--text-faint)', strokeVar('var(--text-faint)')))
+        .attr('stroke-width',1).attr('marker-end','url(#flowArrow)');
+      svg.append('text').attr('x', x0).attr('y', y-54).attr('font-family','var(--mono)')
+        .attr('font-size',10.5).attr('fill', strokeVar('var(--text-faint)')).attr('letter-spacing','0.08em')
+        .text(row.label);
+    } else {
+      svg.append('text').attr('x', 12).attr('y', y-46).attr('font-family','var(--mono)')
+        .attr('font-size',10).attr('fill', strokeVar('var(--text-faint)')).text(row.label.split(' — ')[0]);
+    }
+  });
+  const marker = defs.append('marker').attr('id','flowArrow').attr('viewBox','0 0 10 10')
+    .attr('refX',8).attr('refY',5).attr('markerWidth',7).attr('markerHeight',7).attr('orient','auto-start-reverse');
+  marker.append('path').attr('d','M 0 0 L 10 5 L 0 10 z').attr('fill', strokeVar('var(--text-faint)'));
+
+  // hardware-track connective baseline
+  layout.rows.forEach((row) => {
+    const items = layout.placed.filter(p => p.row === row);
+    if (!items.length) return;
+    if (layout.orientation !== 'v' && !layout.narrow){
+      const y = items[0].hwY;
+      const xs = items.map(i=>i.hwX);
+      svg.append('line').attr('x1', Math.min(...xs)).attr('x2', Math.max(...xs)).attr('y1', y).attr('y2', y)
+        .attr('stroke', strokeVar('var(--line)')).attr('stroke-width',1);
+    }
+  });
+
+  const fault = state.faultId ? FAULT_SYMPTOMS.find(f=>f.id===state.faultId) : null;
+
+  const nodeSel = svg.selectAll('g.node-group')
+    .data(layout.placed, d => d.node.id)
+    .enter()
+    .append('g')
+    .attr('class', d => {
+      let c = 'node-group';
+      if (state.selectedId && state.selectedId !== d.node.id) c += ' dim';
+      if (state.selectedId === d.node.id) c += ' selected';
+      if (fault && fault.hits.includes(d.node.id)) c += ' fault-hit';
+      if (!firstLoadPulseDone) c += ' pulse';
+      return c;
+    })
+    .attr('tabindex', 0)
+    .attr('role','button')
+    .attr('data-id', d => d.node.id)
+    .attr('aria-label', d => {
+      const kindLabel = d.node.kind === 'stage' ? 'Representation stage' : (d.node.transitionType === 'transformation' ? 'Transformation' : 'Transport');
+      return `${d.node.name} \u2014 ${kindLabel}, step ${d.node.pos} of ${N}, ${d.row.dirKey === 'dl' ? 'downlink' : 'uplink'}`;
+    });
+
+  nodeSel.append('title').text(d => {
+    const kindLabel = d.node.kind === 'stage' ? 'Representation stage' : (d.node.transitionType === 'transformation' ? 'Transformation' : 'Transport');
+    return `${kindLabel}, step ${d.node.pos} of ${N}`;
+  });
+
+  // representation-track node
+  nodeSel.each(function(d){
+    const g = d3.select(this);
+    const rg = g.append('g').attr('class','repnode').attr('transform', `translate(${d.repX},${d.repY})`);
+    const color = strokeVar(colorForDomain(d.node.domain));
+    rg.append('circle').attr('class','hitshape').attr('r',26).attr('fill', d.node.kind==='stage' ? 'rgba(255,255,255,0.02)' : 'transparent').attr('stroke','transparent').attr('stroke-width',10);
+    rg.append('circle').attr('class','hoverring').attr('r',24).attr('fill','none').attr('stroke', strokeVar('var(--blue)'));
+    rg.append('circle').attr('class','selring').attr('r',28).attr('fill','none').attr('stroke','none');
+    rg.append('circle').attr('class','faultring').attr('r',30).attr('fill','none').attr('stroke','none');
+    if (d.node.crossover){
+      rg.append('circle').attr('r',22).attr('fill','url(#crossoverGrad)').attr('opacity',0.35).attr('filter','url(#glowFx)');
+    }
+    if (d.node.kind === 'stage'){
+      drawStageIcon(rg, d.node.glyph, color);
+    } else {
+      drawTransitionShape(rg, d.node, color);
+    }
+    rg.append('text').attr('y', 40).attr('text-anchor','middle').attr('font-size',10.5)
+      .attr('fill', strokeVar('var(--text)')).text(shortLabel(d.node.name));
+    rg.append('text').attr('y', 52).attr('text-anchor','middle').attr('font-family','var(--mono)').attr('font-size',8.5)
+      .attr('fill', color).attr('letter-spacing','0.05em').text(domainTag(d.node).toUpperCase());
+  });
+
+  // hardware-track node
+  nodeSel.each(function(d){
+    const g = d3.select(this);
+    const hg = g.append('g').attr('class','hwnode').attr('transform', `translate(${d.hwX},${d.hwY})`);
+    const hwColor = strokeVar('var(--text-dim)');
+    drawHwIcon(hg, d.node.hwGlyph, hwColor);
+    hg.append('text').attr('y', 30).attr('text-anchor','middle').attr('font-family','var(--mono)').attr('font-size',8.5)
+      .attr('fill', strokeVar('var(--text-faint)')).text(shortLabel(HW_ICON_LABEL[d.node.hwGlyph] || d.node.livesIn || d.node.performedBy, 16));
+    hg.append('line').attr('x1',0).attr('y1',-40).attr('x2',0).attr('y2',-52)
+      .attr('stroke', strokeVar('var(--line)')).attr('stroke-width',1).attr('stroke-dasharray','2 2');
+  });
+
+  // interaction wiring
+  nodeSel
+    .on('mouseenter focus', function(event,d){ showTooltip(event, d.node); d3.select(this).classed('kbhover', document.activeElement === this); })
+    .on('mousemove', function(event){ moveTooltip(event); })
+    .on('mouseleave blur', function(){ hideTooltip(); d3.select(this).classed('kbhover', false); })
+    .on('click', function(event,d){ selectNode(d.node.id); })
+    .on('keydown', function(event,d){ handleNodeKeydown(event, d); });
+
+  if (!firstLoadPulseDone){
+    setTimeout(()=>{ firstLoadPulseDone = true; svg.selectAll('.node-group').classed('pulse', false); }, 3700);
+  }
+
+  renderLegend();
+  renderAux(layout);
+  renderRail();
+}
+
+// Truncates a label to a target character length for compact icon captions
+function shortLabel(str, max){
+  max = max || 20;
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max-1) + '\u2026' : str;
+}
+
+/* ============================================================
+   Tooltip (hover/focus, distinct from click-to-open panel)
+   ============================================================ */
+function showTooltip(event, node){
+  const line = node.kind === 'stage' ? node.whatItIs : node.whatChanges;
+  tooltip.style('display','block')
+    .html(`<div class="tt-name">${node.name}</div><div class="tt-line">${line}</div>`);
+  moveTooltip(event);
+}
+function moveTooltip(event){
+  const x = (event.clientX || 0) + 14, y = (event.clientY || 0) + 14;
+  tooltip.style('left', x+'px').style('top', y+'px');
+}
+function hideTooltip(){ tooltip.style('display','none'); }
+
+/* ============================================================
+   Selection
+   ============================================================ */
+function selectNode(id){
+  state.selectedId = (state.selectedId === id) ? null : id;
+  render();
+  const el = document.querySelector(`[data-id="${state.selectedId}"]`);
+  if (el) el.focus();
+}
+function deselect(){ state.selectedId = null; render(); }
+
+/* ============================================================
+   Keyboard navigation
+   Tab / Shift+Tab: DOM order = chain order (handled natively).
+   Enter/Space: select. Escape: deselect.
+   ArrowUp/Down: move between representation and hardware track,
+                 and between downlink/uplink rows.
+   ArrowLeft/Right: move to previous/next chain position.
+   ============================================================ */
+function handleNodeKeydown(event, d){
+  const key = event.key;
+  if (key === 'Enter' || key === ' '){ event.preventDefault(); selectNode(d.node.id); return; }
+  if (key === 'Escape'){ event.preventDefault(); deselect(); return; }
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)){
+    event.preventDefault();
+    const layout = computeLayout();
+    const items = layout.placed;
+    const curIdx = items.findIndex(p => p.node.id === d.node.id);
+    let targetIdx = curIdx;
+    if (key === 'ArrowRight') targetIdx = findByPos(items, d.row, d.node.pos + 1);
+    if (key === 'ArrowLeft') targetIdx = findByPos(items, d.row, d.node.pos - 1);
+    if (key === 'ArrowDown') targetIdx = findRowSwitch(items, layout, d, 1);
+    if (key === 'ArrowUp') targetIdx = findRowSwitch(items, layout, d, -1);
+    if (targetIdx >= 0){
+      const targetId = items[targetIdx].node.id;
+      const el = document.querySelector(`[data-id="${targetId}"]`);
+      if (el) el.focus();
+    }
+  }
+}
+function findByPos(items, row, pos){
+  return items.findIndex(p => p.row === row && p.node.pos === pos);
+}
+function findRowSwitch(items, layout, d, dir){
+  const rowIdx = layout.rows.indexOf(d.row);
+  const targetRowIdx = rowIdx + dir;
+  if (targetRowIdx < 0 || targetRowIdx >= layout.rows.length) return -1;
+  const targetRow = layout.rows[targetRowIdx];
+  return items.findIndex(p => p.row === targetRow && p.node.pos === d.node.pos);
+}
+
+/* ============================================================
+   Legend — always visible, decodes tracks, directions, palette, arrows
+   ============================================================ */
+function renderLegend(){
+  const el = document.getElementById('legend');
+  el.innerHTML = `
+    <span class="item"><span class="swatch" style="background:var(--blue)"></span>Digital domain</span>
+    <span class="item"><span class="swatch" style="background:var(--orange)"></span>Analogue / RF domain</span>
+    <span class="item"><span class="swatch" style="background:linear-gradient(90deg,var(--blue),var(--orange))"></span>DAC/ADC crossover</span>
+    <span class="item"><span class="arrow-sample" style="background:var(--text-dim)"></span>Transformation (signal changes form)</span>
+    <span class="item"><span class="arrow-sample" style="background:repeating-linear-gradient(90deg,var(--text-dim) 0 4px, transparent 4px 7px)"></span>Transport (carried unchanged)</span>
+    <span class="item">Upper row = representation track \u00b7 lower row = hardware/medium track</span>
+    <span class="item">Downlink flows left\u2192right \u00b7 uplink flows right\u2192left (not a mirror)</span>
+    <span class="item"><span class="swatch" style="background:var(--accent);border-radius:50%"></span>Selected</span>
+    <span class="item"><span class="swatch" style="background:transparent;border:2px solid var(--fault)"></span>Fault highlight</span>
+  `;
+}
+
+/* ============================================================
+   Aux panel — one active layer at a time, beneath/around the chain
+   ============================================================ */
+function renderAux(layout){
+  auxEl.innerHTML = '';
+  if (state.layer === 'scale') renderScaleLayer();
+  else if (state.layer === 'latency') renderLatencyLayer();
+  else if (state.layer === 'fault') renderFaultLayer();
+  else if (state.layer === 'physical') renderPhysicalLayer();
+}
+
+// Renders the logarithmic magnitude strip contrasting fibre rate, RF frequency, radiated power, and received power
+function renderScaleLayer(){
+  const panel = document.createElement('div');
+  panel.className = 'aux-panel';
+  panel.innerHTML = `<h3>Scale — magnitudes a row of equal icons hides (log scale, typical values)</h3>`;
+  const rows = [
+    { lbl:'Fibre line rate (CPRI)', logVal: Math.log10(2.5e9), unitLabel:'~2.5 Gbit/s', max:12, color:'var(--blue)'},
+    { lbl:'RF carrier frequency', logVal: Math.log10(1.8e9), unitLabel:'~1.8 GHz', max:12, color:'var(--orange)'},
+    { lbl:'Radiated power (RRU output)', logVal: Math.log10(20), unitLabel:'~20 W (43 dBm)', max:12, color:'var(--orange)'},
+    { lbl:'Received power at handset', logVal: Math.log10(1e-10), unitLabel:'~\u2212100 dBm (10\u2077\u00b9\u2070 W)', max:12, color:'var(--orange)', min:-13},
+  ];
+  const globalMin = -13, globalMax = 12;
+  rows.forEach(r=>{
+    const pct = ((r.logVal - globalMin) / (globalMax - globalMin)) * 100;
+    const row = document.createElement('div'); row.className = 'scale-row';
+    row.innerHTML = `<div class="lbl">${r.lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,pct)}%; background:${r.color}"></div></div><div class="val">${r.unitLabel}</div>`;
+    panel.appendChild(row);
+  });
+  const note = document.createElement('p');
+  note.style.cssText = 'font-size:11.5px;color:var(--text-faint);margin-top:8px;';
+  note.textContent = 'Radiated power and received power differ by roughly 130 dB \u2014 a factor of ten trillion \u2014 which is why the "one icon per stage" view above cannot show this contrast honestly. All values are representative, not specification figures.';
+  panel.appendChild(note);
+  auxEl.appendChild(panel);
+}
+
+// Renders the end-to-end latency budget as a proportional bar aligned to the causing stages
+function renderLatencyLayer(){
+  const panel = document.createElement('div');
+  panel.className = 'aux-panel';
+  panel.innerHTML = `<h3>Latency budget (typical, one-way, downlink)</h3>`;
+  const segs = [
+    { key:'Scheduling', ms:2.5, color:'#5FA3E0', stage:'dl-baseband-mod' },
+    { key:'Processing (baseband + DAC/ADC)', ms:2.0, color:'#8FBEE8', stage:'dl-dac-upconvert' },
+    { key:'Transport (backhaul + fronthaul)', ms:2.5, color:'#E69A55', stage:'dl-cpri' },
+    { key:'Propagation (air)', ms:0.05, color:'#D97A2E', stage:'dl-air' },
+    { key:'Retransmission (typical share)', ms:1.5, color:'#A78BFA', stage:'dl-baseband-mod' },
+  ];
+  const total = segs.reduce((a,s)=>a+s.ms,0);
+  const bar = document.createElement('div'); bar.className = 'latency-bar';
+  segs.forEach(s=>{
+    const div = document.createElement('div'); div.className = 'latency-seg';
+    div.style.width = ((s.ms/total)*100)+'%';
+    div.style.background = s.color;
+    div.title = s.key+': ~'+s.ms+' ms';
+    bar.appendChild(div);
+  });
+  panel.appendChild(bar);
+  const key = document.createElement('div'); key.className = 'latency-key';
+  segs.forEach(s=>{ const sp=document.createElement('span'); sp.innerHTML = `<span style="display:inline-block;width:9px;height:9px;background:${s.color};border-radius:2px;margin-right:4px;"></span>${s.key} \u2248 ${s.ms} ms`; key.appendChild(sp); });
+  panel.appendChild(key);
+  const note = document.createElement('p');
+  note.style.cssText = 'font-size:11.5px;color:var(--text-faint);margin-top:10px;';
+  note.textContent = `Total \u2248 ${total.toFixed(1)} ms one-way (typical, vendor- and load-dependent). Notice how small the pure propagation delay is compared to processing and scheduling \u2014 most latency is decision-making, not the speed of light.`;
+  panel.appendChild(note);
+  auxEl.appendChild(panel);
+}
+
+// Renders the symptom picker and highlights the stages/transitions likely responsible, ordered by likelihood
+function renderFaultLayer(){
+  const panel = document.createElement('div');
+  panel.className = 'aux-panel';
+  panel.innerHTML = `<h3>Fault localisation — pick a symptom</h3>`;
+  const picker = document.createElement('div'); picker.className = 'fault-picker';
+  FAULT_SYMPTOMS.forEach(f=>{
+    const b = document.createElement('button');
+    b.textContent = f.label;
+    b.className = state.faultId === f.id ? 'active' : '';
+    b.onclick = () => { state.faultId = (state.faultId === f.id) ? null : f.id; render(); };
+    picker.appendChild(b);
+  });
+  panel.appendChild(picker);
+  if (state.faultId){
+    const f = FAULT_SYMPTOMS.find(x=>x.id===state.faultId);
+    const list = document.createElement('div');
+    f.hits.forEach((id,i)=>{
+      const n = findNode(id);
+      if (!n) return;
+      const item = document.createElement('div'); item.className = 'fault-item';
+      const check = n.commonFaults && n.commonFaults[0] ? n.commonFaults[0].check : (n.whyNeeded||'');
+      item.innerHTML = `<b>${i+1}. ${n.name}</b><br>First check: ${check}`;
+      list.appendChild(item);
+    });
+    panel.appendChild(list);
+  } else {
+    const p = document.createElement('p');
+    p.textContent = 'Select a symptom above to highlight the likely stages on the chain, ranked by likelihood, each with the first on-site check.';
+    panel.appendChild(p);
+  }
+  auxEl.appendChild(panel);
+}
+
+// Renders a simplified site silhouette (core → cabinet → fibre → tower-top RRU → antenna → handset) as a physical-location key
+function renderPhysicalLayer(){
+  const panel = document.createElement('div');
+  panel.className = 'aux-panel';
+  panel.innerHTML = `<h3>Physical mapping — where each stage actually happens</h3>`;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<svg viewBox="0 0 900 200" style="width:100%;height:auto;" role="img" aria-label="Site silhouette from core network to handset"></svg>`;
+  panel.appendChild(wrap);
+  auxEl.appendChild(panel);
+  const s = d3.select(wrap.querySelector('svg'));
+  const sites = [
+    { x:60, label:'Core network', ids:['dl-ip-core','ul-core-packet'] },
+    { x:220, label:'Backhaul', ids:['dl-backhaul','ul-backhaul'] },
+    { x:360, label:'BBU/DU cabinet', ids:['dl-bbu-du','dl-baseband-mod','dl-iq-samples','ul-bbu-rx','ul-demod-decode','ul-iq-samples'] },
+    { x:500, label:'Fibre (CPRI/eCPRI)', ids:['dl-cpri','ul-cpri'] },
+    { x:620, label:'Tower-top RRU', ids:['dl-dac-upconvert','dl-rf-output','ul-adc-downconvert','ul-rf-input'] },
+    { x:730, label:'Antenna', ids:['dl-coax','dl-antenna-radiate','ul-antenna-rx','ul-coax'] },
+    { x:830, label:'Handset', ids:['dl-air','dl-handset-rx','dl-recovered','ul-app-packet','ul-mod-upconvert','ul-air'] },
+  ];
+  s.append('line').attr('x1',30).attr('y1',150).attr('x2',870).attr('y2',150).attr('stroke', strokeVar('var(--line)')).attr('stroke-width',2);
+  s.selectAll('g.site').data(sites).enter().append('g').attr('class','site')
+    .attr('transform', d=>`translate(${d.x},150)`)
+    .each(function(d){
+      const g = d3.select(this);
+      g.append('rect').attr('x',-16).attr('y',-40).attr('width',32).attr('height',40).attr('rx',3)
+        .attr('fill','var(--panel-2)').attr('stroke', strokeVar('var(--blue)')).attr('stroke-width',1.2);
+      g.append('circle').attr('r',3).attr('fill', strokeVar('var(--accent)'));
+      g.append('text').attr('y',20).attr('text-anchor','middle').attr('font-size',10).attr('fill', strokeVar('var(--text-dim)')).text(d.label);
+      g.append('line').attr('x1',0).attr('y1',-40).attr('x2',0).attr('y2',-56).attr('stroke', strokeVar('var(--text-faint)')).attr('stroke-width',1).attr('stroke-dasharray','2 2');
+    });
+  const note = document.createElement('p');
+  note.style.cssText = 'font-size:11.5px;color:var(--text-faint);margin-top:6px;';
+  note.textContent = 'In 5G the CU/DU functional split can move, which shifts where the fibre boundary falls on this silhouette \u2014 the chain above is not redrawn for 5G, only this mapping would move.';
+  panel.appendChild(note);
+}
+
+/* ============================================================
+   Detail rail — side panel on wide viewports, never an overlay
+   ============================================================ */
+function renderRail(){
+  if (!state.selectedId){
+    railEl.innerHTML = `
+      <div class="kicker">Orientation</div>
+      <h2>Two tracks, one signal</h2>
+      <p>The <b>upper track</b> shows what the signal <i>is</i> at each point \u2014 an IP packet, a stream of I/Q samples, an analogue RF carrier. The <b>lower track</b> shows which physical box or medium it lives in at that same point.</p>
+      <p>Everything up to the <b>DAC / upconversion</b> step is digital; everything after it, until the handset\u2019s <b>ADC</b>, is a physical analogue wave. That crossover is marked with a blue\u2013orange glow \u2014 it is the moment the signal changes nature, not just format.</p>
+      <p>Click any stage or transition to open its detail here. Use Tab to move through the chain in order, arrow keys to move between tracks and directions, Escape to close.</p>
+      <div class="field-label">Legend</div>
+      <p style="font-size:11.5px;">Blue = digital domain &middot; Orange = analogue/RF domain &middot; dashed chevron = transport (unchanged) &middot; solid chevron = transformation (signal changes form).</p>
+    `;
+    return;
+  }
+  const n = findNode(state.selectedId);
+  if (!n){ railEl.innerHTML = ''; return; }
+  const kindLabel = n.kind === 'stage' ? 'Representation stage' : (n.transitionType === 'transformation' ? 'Transformation' : 'Transport');
+  let html = `<div class="kicker">${kindLabel} \u00b7 step ${n.pos} of ${N}</div><h2>${n.name}</h2>`;
+  html += `<span class="tag ${n.domain}">${domainTag(n)}</span>`;
+  if (n.kind === 'stage'){
+    html += `<div class="field-label">What the signal is</div><p>${n.whatItIs}</p>`;
+    html += `<div class="field-label">Lives in</div><p>${n.livesIn}</p>`;
+    html += `<div class="field-label">Typical values</div><p>${n.typicalValues} \u2014 <i>typical, vendor-dependent, not a spec value.</i></p>`;
+    html += `<div class="field-label">Observable as</div><p>${n.observableAs}</p>`;
+  } else {
+    html += `<div class="field-label">What changes here</div><p>${n.whatChanges}</p>`;
+    html += `<div class="field-label">Performed by</div><p>${n.performedBy}</p>`;
+    html += `<div class="field-label">Why this step exists</div><p>${n.whyNeeded}</p>`;
+    if (n.asymmetryNote){
+      html += `<div class="field-label">Downlink / uplink asymmetry</div><p>${n.asymmetryNote}</p>`;
+    }
+    html += `<div class="field-label">Common faults</div>`;
+    (n.commonFaults||[]).forEach(cf=>{
+      html += `<div class="fault-item"><b>${cf.symptom}</b><br>First check: ${cf.check}</div>`;
+    });
+    html += `<div class="field-label">User-visible symptom</div><p>${n.userSymptom}</p>`;
+    html += `<div class="field-label">Latency contribution</div><p>${n.latencyContribution}</p>`;
+  }
+  railEl.innerHTML = html;
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'closebtn'; closeBtn.textContent = 'Close detail (Esc)';
+  closeBtn.onclick = deselect;
+  railEl.appendChild(closeBtn);
+
+  if (n.hasIQVisual){
+    renderIQVisual(railEl);
+  }
+}
+
+/* ============================================================
+   IQ sub-visual — the sole inline exception to "two levels only"
+   ============================================================ */
+function renderIQVisual(container){
+  const wrap = document.createElement('div');
+  wrap.className = 'iq-visual';
+  wrap.innerHTML = `
+    <div class="field-label">I/Q quadrature components</div>
+    <svg id="iqQuad" viewBox="0 0 260 80" style="width:100%;height:auto;"></svg>
+    <div class="field-label">Constellation (select modulation order)</div>
+    <div class="mod-picker" id="modPicker"></div>
+    <svg id="iqConst" viewBox="0 0 160 160" style="width:150px;height:150px;display:block;margin:0 auto;"></svg>
+    <p style="font-size:11.5px;">Higher-order modulation packs more bits per symbol into the same constellation space, so the points sit closer together \u2014 that demands a cleaner signal (better SNR) to tell them apart reliably.</p>
+    <p style="font-size:11.5px;">The fibre carries these I/Q <i>samples</i>, not the RF wave itself, because samples are just numbers \u2014 they survive digital transport (error-free, over any distance the fibre budget allows) in a way a fragile analogue RF wave could not.</p>
+  `;
+  container.appendChild(wrap);
+
+  const qsvg = d3.select('#iqQuad');
+  const xScale = d3.scaleLinear().domain([0, 4*Math.PI]).range([10,250]);
+  let dI = 'M 10 20 ', dQ = 'M 10 60 ';
+  for (let t=0; t<=4*Math.PI; t+=0.1){
+    dI += `L ${xScale(t)} ${20 - 14*Math.sin(t)} `;
+    dQ += `L ${xScale(t)} ${60 - 14*Math.sin(t + Math.PI/2)} `;
+  }
+  qsvg.append('path').attr('d', dI).attr('fill','none').attr('stroke', strokeVar('var(--blue)')).attr('stroke-width',1.5);
+  qsvg.append('path').attr('d', dQ).attr('fill','none').attr('stroke', strokeVar('var(--orange)')).attr('stroke-width',1.5);
+  qsvg.append('text').attr('x',12).attr('y',10).attr('font-size',9).attr('fill', strokeVar('var(--blue)')).text('I (in-phase)');
+  qsvg.append('text').attr('x',12).attr('y',50).attr('font-size',9).attr('fill', strokeVar('var(--orange)')).text('Q (90\u00b0 offset)');
+
+  const modes = { QPSK:2, '16-QAM':4, '64-QAM':8 };
+  const picker = document.getElementById('modPicker');
+  Object.keys(modes).forEach(m=>{
+    const b = document.createElement('button');
+    b.textContent = m;
+    b.className = state.modOrder === m ? 'active' : '';
+    b.onclick = () => { state.modOrder = m; renderConstellation(); Array.from(picker.children).forEach(c=>c.classList.toggle('active', c===b)); };
+    picker.appendChild(b);
+  });
+  renderConstellation();
+
+  function renderConstellation(){
+    const csvg = d3.select('#iqConst');
+    csvg.selectAll('*').remove();
+    csvg.append('line').attr('x1',80).attr('y1',10).attr('x2',80).attr('y2',150).attr('stroke', strokeVar('var(--line)'));
+    csvg.append('line').attr('x1',10).attr('y1',80).attr('x2',150).attr('y2',80).attr('stroke', strokeVar('var(--line)'));
+    const side = modes[state.modOrder];
+    const pts = [];
+    const span = 55;
+    for (let i=0;i<side;i++){
+      for (let j=0;j<side;j++){
+        pts.push({
+          x: 80 + (i - (side-1)/2) * (2*span/side),
+          y: 80 + (j - (side-1)/2) * (2*span/side)
+        });
+      }
+    }
+    csvg.selectAll('circle.pt').data(pts).enter().append('circle').attr('class','pt')
+      .attr('cx', p=>p.x).attr('cy', p=>p.y).attr('r',3)
+      .attr('fill', strokeVar('var(--accent)'));
+  }
+}
+
+/* ============================================================
+   Travelling signal animation — Canvas overlay ONLY (structure and
+   hit-testing stay in SVG/D3 above). Respects prefers-reduced-motion.
+   ============================================================ */
+const fxCanvas = document.getElementById('fxCanvas');
+const fxCtx = fxCanvas.getContext('2d');
+let animT = 0, animRAF = null;
+
+function positionCanvas(){
+  const svgRect = svg.node().getBoundingClientRect();
+  const scrollX = window.scrollX, scrollY = window.scrollY;
+  fxCanvas.style.left = (svgRect.left + scrollX) + 'px';
+  fxCanvas.style.top = (svgRect.top + scrollY) + 'px';
+  fxCanvas.width = svgRect.width;
+  fxCanvas.height = svgRect.height;
+}
+
+// Draws a single travelling marker along the active (first visible) row, morphing shape at each transformation boundary
+function drawTravellingSignal(){
+  positionCanvas();
+  fxCtx.clearRect(0,0,fxCanvas.width, fxCanvas.height);
+  const layout = computeLayout();
+  if (!layout.rows.length) return;
+  const row = layout.rows[0];
+  const items = layout.placed.filter(p=>p.row===row).sort((a,b)=> (row.reverseSpatial ? b.node.pos-a.node.pos : a.node.pos-b.node.pos));
+  if (items.length < 2) return;
+  const totalSpan = items.length - 1;
+  const progress = (animT % totalSpan);
+  const idx = Math.floor(progress);
+  const frac = progress - idx;
+  const a = items[idx], b = items[Math.min(idx+1, items.length-1)];
+  const svgBox = svg.node().viewBox.baseVal;
+  const scaleX = fxCanvas.width / svgBox.width;
+  const scaleY = fxCanvas.height / svgBox.height;
+  const x = (a.repX + (b.repX - a.repX)*frac) * scaleX;
+  const y = (a.repY + (b.repY - a.repY)*frac) * scaleY;
+  const domain = a.node.domain === 'analogue' ? 'analogue' : (a.node.domain==='crossover' ? (frac<0.5?'digital':'analogue') : 'digital');
+  fxCtx.beginPath();
+  fxCtx.fillStyle = domain === 'digital' ? '#5FA3E0' : '#E69A55';
+  fxCtx.shadowColor = fxCtx.fillStyle; fxCtx.shadowBlur = 10;
+  if (domain === 'digital'){
+    fxCtx.fillRect(x-4, y-4, 8, 8);
+  } else {
+    fxCtx.arc(x, y, 5, 0, Math.PI*2);
+    fxCtx.fill();
+  }
+}
+
+function animLoop(){
+  if (!state.playing) return;
+  animT += 0.02;
+  drawTravellingSignal();
+  animRAF = requestAnimationFrame(animLoop);
+}
+
+function stepAnim(){
+  state.playing = false;
+  animT += 1;
+  drawTravellingSignal();
+}
+
+/* ============================================================
+   Control wiring
+   ============================================================ */
+document.querySelectorAll('.tabgroup button').forEach(btn=>{
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabgroup button').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+    btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+    state.layer = btn.dataset.layer;
+    if (state.layer !== 'fault') state.faultId = null;
+    render();
+  });
+});
+document.querySelectorAll('.dirgroup button').forEach(btn=>{
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dirgroup button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.dir = btn.dataset.dir;
+    render();
+  });
+});
+document.getElementById('playBtn').addEventListener('click', function(){
+  if (reducedMotion){
+    stepAnim();
+    return;
+  }
+  state.playing = !state.playing;
+  this.setAttribute('aria-pressed', String(state.playing));
+  this.textContent = state.playing ? '\u23F8 Pause signal' : '\u25B6 Play signal';
+  if (state.playing) animLoop();
+  else if (animRAF) cancelAnimationFrame(animRAF);
+});
+document.getElementById('stepBtn').addEventListener('click', stepAnim);
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { render(); if(state.playing) drawTravellingSignal(); }, 120);
+});
+document.addEventListener('scroll', () => { if (state.playing) positionCanvas(); }, true);
+
+/* ============================================================
+   Init
+   ============================================================ */
+if (reducedMotion){
+  const pb = document.getElementById('playBtn');
+  pb.textContent = '\u23ED Step signal (motion reduced)';
+}
+render();
+</script>
+</body>
+</html>
