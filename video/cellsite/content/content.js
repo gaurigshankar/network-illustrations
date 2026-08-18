@@ -1215,21 +1215,21 @@ window.CELLSITE = (function () {
   const s5 = {
     heading: 'THE SIGNAL CHAIN — DOWNLINK',
     trackLabels: { rep: 'REPRESENTATION — what the signal is', hw: 'HARDWARE / MEDIUM — where it lives' },
-    domainTags: { digital: 'DIGITAL', analogue: 'ANALOGUE' },
+    domainTags: { digital: 'DIGITAL', analogue: 'ANALOGUE', cross: 'CROSSOVER' },
     chain: [
-      { kind: 'stage',     id: 'ip',      cue: '5.2', domain: 'digital',  rep: 'IP packet',        hw: 'Core network / SGW',   val: '~1500 B MTU, GTP-U (typical)' },
-      { kind: 'transport', id: 'backhaul',cue: '5.2', domain: 'digital',  rep: 'unchanged',        hw: 'Backhaul — fibre or MW', val: '1–10 Gbps (typical)' },
-      { kind: 'stage',     id: 'sched',   cue: '5.3', domain: 'digital',  rep: 'Scheduled bits',   hw: 'BBU / DU',             val: '1 ms TTI (typical)' },
-      { kind: 'xform',     id: 'baseband',cue: '5.3', domain: 'digital',  rep: 'Baseband processing', hw: 'BBU / DU',          val: 'coding · QPSK–256QAM · MIMO · IFFT' },
-      { kind: 'stage',     id: 'iq',      cue: '5.3', domain: 'digital',  rep: 'IQ samples',       hw: 'BBU / DU',             val: '≈15.36 Msps @ 10 MHz (typical)' },
-      { kind: 'transport', id: 'cpri',    cue: '5.4', domain: 'digital',  rep: 'unchanged',        hw: 'Fibre — CPRI / eCPRI', val: '2.5 / 4.9 / 9.8 / 10.1 Gbps (typical)' },
-      { kind: 'xform',     id: 'dac',     cue: '5.5', domain: 'cross',    rep: 'DAC + upconversion', hw: 'RRU',                val: 'THE DIGITAL → ANALOGUE CROSSOVER' },
-      { kind: 'stage',     id: 'rf',      cue: '5.6', domain: 'analogue', rep: 'Analogue RF',      hw: 'RRU — after the PA',   val: '40–46 dBm ≈ 10–40 W per branch (typical)' },
-      { kind: 'transport', id: 'coax',    cue: '5.6', domain: 'analogue', rep: 'unchanged',        hw: '½" coax jumper',       val: 'the short run' },
-      { kind: 'xform',     id: 'radiate', cue: '5.6', domain: 'analogue', rep: 'Radiated beam',    hw: 'Panel antenna',        val: '15–18 dBi · 65° beamwidth (typical)' },
-      { kind: 'transport', id: 'air',     cue: '5.6', domain: 'analogue', rep: 'Propagation',      hw: 'Air interface',        val: 'path loss 120–145 dB (typical)' },
-      { kind: 'xform',     id: 'adc',     cue: '5.7', domain: 'cross',    rep: 'LNA + ADC + demod', hw: 'Handset',             val: 'analogue → digital, back again' },
-      { kind: 'stage',     id: 'out',     cue: '5.7', domain: 'digital',  rep: 'Recovered packet', hw: 'Handset application',  val: 'identical payload to the left-hand end' }
+      { kind: 'stage',     id: 'ip',      cue: '5.2', domain: 'digital',  rep: 'IP packet',      hw: 'Core network',   val: '~1500 B MTU, GTP-U (typical)' },
+      { kind: 'transport', id: 'backhaul',cue: '5.2', domain: 'digital',  rep: 'unchanged',      hw: 'Backhaul',      val: 'fibre or microwave · 1–10 Gbps (typical)' },
+      { kind: 'stage',     id: 'sched',   cue: '5.3', domain: 'digital',  rep: 'Scheduled bits', hw: 'BBU / DU',       val: '1 ms TTI (typical)' },
+      { kind: 'xform',     id: 'baseband',cue: '5.3', domain: 'digital',  rep: 'Baseband',       hw: 'BBU / DU',       val: 'coding · QPSK–256QAM · MIMO · IFFT' },
+      { kind: 'stage',     id: 'iq',      cue: '5.3', domain: 'digital',  rep: 'IQ samples',     hw: 'BBU / DU',       val: '≈15.36 Msps @ 10 MHz (typical)' },
+      { kind: 'transport', id: 'cpri',    cue: '5.4', domain: 'digital',  rep: 'unchanged',      hw: 'Fibre CPRI',    val: '2.5 / 4.9 / 9.8 / 10.1 Gbps (typical)' },
+      { kind: 'xform',     id: 'dac',     cue: '5.5', domain: 'cross',    rep: 'DAC + upconvert',hw: 'RRU',            val: 'THE DIGITAL → ANALOGUE CROSSOVER' },
+      { kind: 'stage',     id: 'rf',      cue: '5.6', domain: 'analogue', rep: 'Analogue RF',    hw: 'RRU, after PA',  val: '40–46 dBm ≈ 10–40 W per branch (typical)' },
+      { kind: 'transport', id: 'coax',    cue: '5.6', domain: 'analogue', rep: 'unchanged',      hw: 'Coax jumper',   val: 'the short run — RF travels one metre' },
+      { kind: 'xform',     id: 'radiate', cue: '5.6', domain: 'analogue', rep: 'Radiated beam',  hw: 'Panel antenna',  val: '15–18 dBi · 65° beamwidth (typical)' },
+      { kind: 'transport', id: 'air',     cue: '5.6', domain: 'analogue', rep: 'Propagation',    hw: 'Air',           val: 'path loss 120–145 dB (typical)' },
+      { kind: 'xform',     id: 'adc',     cue: '5.7', domain: 'cross',    rep: 'LNA + ADC',      hw: 'Handset',        val: 'analogue → digital, back again' },
+      { kind: 'stage',     id: 'out',     cue: '5.7', domain: 'digital',  rep: 'Recovered packet', hw: 'Handset app',  val: 'identical payload to the left-hand end' }
     ],
     crossover: { label: 'DIGITAL → ANALOGUE', sub: 'the signal changes nature here' },
     transportNote: 'Fibre is TRANSPORT, not transformation — nothing about the information changes crossing it.',
@@ -1240,7 +1240,7 @@ window.CELLSITE = (function () {
     fiveG: 'LTE ▸ 5G: CPRI becomes eCPRI (packet-based); the CU/DU split moves where this fibre boundary falls. Chain unchanged.',
     scale: {
       heading: 'THE SPANS INVOLVED — LOGARITHMIC',
-      caption: 'Fifteen orders of magnitude between what leaves the radio and what reaches the phone.',
+      caption: 'Fifteen orders of magnitude, end to end.',
       items: [
         { id: 'fibre',  label: 'Fibre line rate',       value: '≈ 10 Gbps',   exp: 10,   domain: 'digital'  },
         { id: 'carrier',label: 'Carrier frequency',     value: '≈ 1.8 GHz',   exp: 9.26, domain: 'analogue' },
@@ -1252,10 +1252,11 @@ window.CELLSITE = (function () {
     caveat: 'ALL FIGURES: representative ranges for typical LTE macro equipment — not manufacturer specifications.',
     uplink: {
       heading: 'UPLINK — NOT A MIRROR IMAGE',
+      stepsNote: 'Representative ranges, typical LTE macro',
       steps: [
-        { id: 'ue',   label: 'Handset PA',        val: '≤ 23 dBm ≈ 0.2 W (typical)' },
-        { id: 'path', label: 'Same path loss',    val: '120–145 dB (typical)' },
-        { id: 'lna',  label: 'RRU LNA + ADC',     val: 'sensitivity −100 to −110 dBm (typical)' },
+        { id: 'ue',   label: 'Handset PA',        val: '≤ 23 dBm ≈ 0.2 W' },
+        { id: 'path', label: 'Same path loss',    val: '120–145 dB' },
+        { id: 'lna',  label: 'RRU LNA + ADC',     val: 'sens. −100 to −110 dBm' },
         { id: 'bbu',  label: 'BBU demod + decode',val: 'HARQ combining' }
       ],
       asymmetry: {

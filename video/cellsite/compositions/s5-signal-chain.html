@@ -1,23 +1,375 @@
 <!doctype html>
-<!-- SCENE 5 — STUB, pending build -->
-<html lang="en"><head><meta charset="UTF-8" /></head><body>
-<template>
-  <style>
-    #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
-    .ground { position: absolute; inset: 0; background: #f6f8fa; }
-    .stub { position: absolute; left: 560px; top: 470px; font-size: 62px; color: #64748b; font-weight: 700; }
-  </style>
-  <div id="root" data-composition-id="s5-signal-chain" data-width="1920" data-height="1080">
-    <div class="ground"></div>
-    <div class="stub" id="s5-signal-chain-stub">SCENE 5</div>
-  </div>
-  <script>
-    (function () {
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      tl.fromTo("#s5-signal-chain-stub", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
-      window.__timelines["s5-signal-chain"] = tl;
-    })();
-  </script>
-</template>
-</body></html>
+<!--
+  SCENE 5 — THE SIGNAL CHAIN     absolute 3:18.41 → 4:42.10   (local 0 → 83.69)
+
+  Two aligned tracks:
+    upper — REPRESENTATION: what the signal is
+    lower — HARDWARE / MEDIUM: which box or link it lives in
+
+  Beats (cue ids from content/content.js):
+    5.1   tracks and legend draw; arrow types are distinguished up front
+    5.2   IP packet enters at the core
+    5.3   BBU: scheduling, coding, then the transformation to IQ samples
+    5.4   CPRI over fibre — transport, NOT transformation (said out loud)
+    5.5   DAC + upconversion — the crossover, blue becomes orange, emphatic
+    5.6   PA → coax jumper → antenna → radiated beam
+    5.7   handset: LNA → ADC → demodulation → recovered packet
+    5.8   logarithmic scale strip — the span is the lesson, held 6 s
+    5.9   accuracy caveat banner sets and stays
+    5.10  uplink drawn as a visually distinct return row, not a mirror
+    5.11  the asymmetry named: the handset PA is weak and battery-constrained
+
+  A hover tooltip in the source diagram becomes the detail strip below the
+  chain, which fades in the active node's value line as it is spoken.
+  Keep-out: the avatar corner cutout occupies x 40–462, y 473–1004.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        #s5-svg { position: absolute; left: 0; top: 0; }
+        .s5-h { font-size: 25px; font-weight: 700; letter-spacing: 0.15em; fill: #475569; }
+        .s5-lab { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s5-det { font-size: 25px; fill: #64748b; }
+        .s5-tag { font-size: 25px; font-weight: 700; letter-spacing: 0.08em; }
+        .s5-cap { font-size: 34px; font-weight: 700; fill: #0f172a; }
+        .s5-node { font-size: 25px; font-weight: 700; }
+        .s5-big { font-size: 62px; font-weight: 700; fill: #0f172a; }
+      </style>
+
+      <div id="root" data-composition-id="s5-signal-chain" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <svg id="s5-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <text id="s5-heading" class="s5-h" x="80" y="76"></text>
+
+          <!-- arrow-type legend: transformation vs transport, stated up front -->
+          <g id="s5-legend">
+            <g id="s5-leg-0">
+              <path d="M84 132 H150" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+              <path d="M150 132 l-12 -6 v12 z" fill="#0f172a"/>
+              <circle cx="117" cy="132" r="11" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+              <path d="M111 129 h12 M111 135 h12" stroke="#0f172a" stroke-width="1"/>
+              <text class="s5-det" x="172" y="141"></text>
+            </g>
+            <g id="s5-leg-1">
+              <path d="M700 126 H766 M700 138 H766" stroke="#64748b" stroke-width="1.5" stroke-dasharray="7 5" fill="none"/>
+              <text class="s5-det" x="788" y="141"></text>
+            </g>
+          </g>
+
+          <!-- track labels -->
+          <text id="s5-tl-rep" class="s5-h" x="90" y="240"></text>
+          <text id="s5-tl-hw" class="s5-h" x="90" y="388"></text>
+
+          <!-- the chain itself, built from the data file -->
+          <g id="s5-chain"></g>
+
+          <!-- crossover marker: where blue becomes orange -->
+          <g id="s5-cross" opacity="0">
+            <path id="s5-cross-line" d="M0 244 V486" stroke="#9333ea" stroke-width="1.5" stroke-dasharray="6 5" fill="none"/>
+            <rect id="s5-cross-box" x="0" y="176" width="330" height="66" rx="8" fill="#ffffff" stroke="#9333ea" stroke-width="1.5"/>
+            <text id="s5-cross-l" class="s5-lab" x="0" y="206" text-anchor="middle" fill="#9333ea"></text>
+            <text id="s5-cross-s" class="s5-det" x="0" y="232" text-anchor="middle" fill="#9333ea"></text>
+          </g>
+
+          <!-- travelling packet, changing form at each transformation -->
+          <g id="s5-packet" opacity="0">
+            <rect id="s5-packet-box" x="-22" y="-16" width="44" height="32" rx="5" fill="#1d4ed8"/>
+            <path id="s5-packet-mark" d="M-10 -6 h20 M-10 0 h20 M-10 6 h14" stroke="#ffffff" stroke-width="1.5"/>
+          </g>
+
+          <!-- detail strip: the active node's representative figures -->
+          <g id="s5-detail" opacity="0">
+            <rect x="520" y="552" width="1360" height="52" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+            <g id="s5-detail-set"></g>
+          </g>
+
+          <!-- transport note, said out loud on cue 5.4 -->
+          <text id="s5-transport-note" class="s5-cap" x="520" y="668" fill="#1d4ed8" opacity="0"></text>
+          <text id="s5-5g" class="s5-det" x="520" y="712" opacity="0"></text>
+
+          <!-- ===== logarithmic scale strip (5.8) ===================== -->
+          <g id="s5-scale" opacity="0">
+            <text id="s5-scale-h" class="s5-h" x="520" y="646"></text>
+            <line id="s5-scale-axis" x1="560" y1="800" x2="1840" y2="800" stroke="#64748b" stroke-width="1.5"/>
+            <g id="s5-scale-items"></g>
+            <text id="s5-scale-cap" class="s5-cap" x="520" y="688"></text>
+          </g>
+
+          <!-- ===== uplink return row (5.10 – 5.11) =================== -->
+          <g id="s5-uplink" opacity="0">
+            <text id="s5-ul-h" class="s5-h" x="520" y="646" fill="#c2410c"></text>
+            <g id="s5-ul-steps"></g>
+            <text id="s5-ul-note" class="s5-det" x="1500" y="886"></text>
+            <g id="s5-ul-asym">
+              <text id="s5-ul-asym-h" class="s5-h" x="1500" y="700"></text>
+              <text id="s5-ul-dl-l" class="s5-det" x="1500" y="738"></text>
+              <rect id="s5-ul-dl-bar" x="1500" y="748" width="360" height="18" rx="4" fill="#ea580c"/>
+              <text id="s5-ul-dl-v" class="s5-lab" x="1860" y="738" text-anchor="end" fill="#c2410c"></text>
+              <text id="s5-ul-ul-l" class="s5-det" x="1500" y="798"></text>
+              <rect id="s5-ul-ul-bar" x="1500" y="808" width="42" height="18" rx="4" fill="#c2410c"/>
+              <text id="s5-ul-ul-v" class="s5-lab" x="1860" y="798" text-anchor="end" fill="#c2410c"></text>
+              <text id="s5-ul-ratio" class="s5-det" x="1500" y="852"></text>
+            </g>
+            <text id="s5-ul-lesson" class="s5-cap" x="520" y="870" fill="#c2410c"></text>
+          </g>
+
+          <!-- accuracy caveat: representative ranges, never specifications -->
+          <text id="s5-caveat" class="s5-det" x="520" y="906" opacity="0"></text>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE, S = "s5", d = C.s5, P = C.palette;
+          const NS = "http://www.w3.org/2000/svg";
+          const $ = function (s) { return document.querySelector(s); };
+          const mk = function (tag, a) {
+            const e = document.createElementNS(NS, tag);
+            Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });
+            return e;
+          };
+          // Greedy word wrap using real glyph measurement — a character budget
+          // guesses wrong at these box widths and overflows the node.
+          const ruler = mk("text", { x: -9999, y: -9999 });
+          const measure = function (str, cls) {
+            ruler.setAttribute("class", cls);
+            ruler.textContent = str;
+            return ruler.getComputedTextLength();
+          };
+          const wrap = function (text, maxW, cls) {
+            const w = text.split(" "), out = []; let cur = "";
+            w.forEach(function (x) {
+              const cand = cur ? cur + " " + x : x;
+              if (measure(cand, cls) > maxW && cur) { out.push(cur); cur = x; } else { cur = cand; }
+            });
+            if (cur) out.push(cur);
+            return out;
+          };
+          const addLines = function (g, lines, x, y, cls, fill, lh) {
+            lines.forEach(function (ln, i) {
+              const t = mk("text", { x: x, y: y + i * (lh || 28), class: cls, "text-anchor": "middle" });
+              if (fill) t.setAttribute("fill", fill);
+              t.textContent = ln;
+              g.appendChild(t);
+            });
+          };
+
+          $("#s5-svg").appendChild(ruler);
+
+          $("#s5-heading").textContent = d.heading;
+          $("#s5-tl-rep").textContent = d.trackLabels.rep;
+          $("#s5-tl-hw").textContent = d.trackLabels.hw;
+          $("#s5-leg-0").querySelector("text").textContent = d.arrowLegend[0].label;
+          $("#s5-leg-1").querySelector("text").textContent = d.arrowLegend[1].label;
+          $("#s5-cross-l").textContent = d.crossover.label;
+          $("#s5-cross-s").textContent = d.crossover.sub;
+          $("#s5-transport-note").textContent = d.transportNote;
+          $("#s5-5g").textContent = d.fiveG;
+          $("#s5-caveat").textContent = d.caveat;
+          $("#s5-scale-h").textContent = d.scale.heading;
+          $("#s5-scale-cap").textContent = d.scale.caption;
+          $("#s5-ul-h").textContent = d.uplink.heading;
+          $("#s5-ul-asym-h").textContent = d.uplink.asymmetry.heading;
+          $("#s5-ul-dl-l").textContent = d.uplink.asymmetry.dl.label;
+          $("#s5-ul-dl-v").textContent = d.uplink.asymmetry.dl.value;
+          $("#s5-ul-ul-l").textContent = d.uplink.asymmetry.ul.label;
+          $("#s5-ul-ul-v").textContent = d.uplink.asymmetry.ul.value;
+          $("#s5-ul-ratio").textContent = d.uplink.asymmetry.ratio;
+          $("#s5-ul-note").textContent = d.uplink.stepsNote;
+          $("#s5-ul-lesson").textContent = d.uplink.asymmetry.lesson;
+          
+          // ---- lay the chain out ---------------------------------------
+          const W = { stage: 150, xform: 140, transport: 120 }, GAP = 4, X0 = 44;
+          const REP_Y = 252, REP_H = 104, HW_Y = 400, HW_H = 70;
+          const chainG = $("#s5-chain");
+          let x = X0;
+          const pos = {};
+          d.chain.forEach(function (n) {
+            const w = W[n.kind === "stage" ? "stage" : n.kind === "xform" ? "xform" : "transport"];
+            const cx = x + w / 2;
+            pos[n.id] = { x: x, w: w, cx: cx };
+            const domCol = n.domain === "analogue" ? P.analogue : n.domain === "cross" ? P.accent : P.digital;
+            const domInk = n.domain === "analogue" ? P.analogueInk : n.domain === "cross" ? P.accent : P.digital;
+            const wash = n.domain === "analogue" ? P.analogueWash : n.domain === "cross" ? "#f3e8ff" : P.digitalWash;
+
+            const g = mk("g", { id: "s5-n-" + n.id, opacity: 0 });
+
+            // ---- upper track: representation
+            if (n.kind === "transport") {
+              g.appendChild(mk("path", {
+                d: "M" + (x + 6) + " " + (REP_Y + 36) + " H" + (x + w - 6) +
+                   " M" + (x + 6) + " " + (REP_Y + 56) + " H" + (x + w - 6),
+                stroke: domCol, "stroke-width": 1.5, "stroke-dasharray": "7 5", fill: "none"
+              }));
+            } else {
+              g.appendChild(mk("rect", {
+                x: x, y: REP_Y, width: w, height: REP_H, rx: 6,
+                fill: n.kind === "xform" ? "#ffffff" : wash,
+                stroke: domCol, "stroke-width": 1.5,
+                "stroke-dasharray": n.kind === "xform" ? "0" : "0"
+              }));
+              addLines(g, wrap(n.rep, w - 16, "s5-node"), cx, REP_Y + 32, "s5-node", domInk, 24);
+              // domain is never conveyed by colour alone
+              const tag = mk("text", { x: cx, y: REP_Y + REP_H - 12, class: "s5-det", "text-anchor": "middle", fill: domInk });
+              tag.textContent = n.domain === "analogue" ? d.domainTags.analogue
+                : n.domain === "cross" ? d.domainTags.cross : d.domainTags.digital;
+              g.appendChild(tag);
+            }
+
+            // ---- transformation glyph on the boundary
+            if (n.kind === "xform") {
+              const gy = REP_Y + REP_H + 14;
+              g.appendChild(mk("circle", { cx: cx, cy: gy, r: 13, fill: "#ffffff", stroke: domCol, "stroke-width": 1.5 }));
+              g.appendChild(mk("path", {
+                d: "M" + (cx - 7) + " " + (gy - 4) + " h14 M" + (cx - 7) + " " + (gy + 4) + " h14",
+                stroke: domCol, "stroke-width": 1.2
+              }));
+            }
+
+            // ---- lower track: hardware / medium
+            g.appendChild(mk("rect", {
+              x: x, y: HW_Y, width: w, height: HW_H, rx: 6,
+              fill: "#ffffff", stroke: n.kind === "transport" ? P.metal : P.inkSoft,
+              "stroke-width": 1.5,
+              "stroke-dasharray": n.kind === "transport" ? "7 5" : "0"
+            }));
+            addLines(g, wrap(n.hw, w - 16, "s5-det"), cx, HW_Y + 28, "s5-det", P.inkSoft, 24);
+
+            // ---- alignment tick between the two tracks
+            g.appendChild(mk("line", { x1: cx, y1: REP_Y + REP_H, x2: cx, y2: HW_Y, stroke: P.rule, "stroke-width": 0.75 }));
+
+            chainG.appendChild(g);
+            x += w + GAP;
+          });
+
+          // crossover marker sits on the DAC node
+          const dacX = pos.dac.cx;
+          $("#s5-cross-line").setAttribute("d", "M" + dacX + " 230 V" + (HW_Y + HW_H + 12));
+          $("#s5-cross-box").setAttribute("x", dacX - 165);
+          $("#s5-cross-l").setAttribute("x", dacX);
+          $("#s5-cross-s").setAttribute("x", dacX);
+
+          // ---- detail strip: one value line per node -------------------
+          const dset = $("#s5-detail-set");
+          d.chain.forEach(function (n) {
+            const t = mk("text", { x: 548, y: 586, class: "s5-det", id: "s5-v-" + n.id, opacity: 0 });
+            t.textContent = (n.kind === "transport" ? n.hw : n.rep) + "  ·  " + n.val;
+            dset.appendChild(t);
+          });
+
+          // ---- log scale strip ----------------------------------------
+          const si = $("#s5-scale-items");
+          const EXP_MIN = -13, EXP_MAX = 11, AX0 = 560, AX1 = 1840;
+          const expX = function (e) { return AX0 + ((e - EXP_MIN) / (EXP_MAX - EXP_MIN)) * (AX1 - AX0); };
+          for (let e = EXP_MIN + 1; e <= EXP_MAX; e += 3) {
+            si.appendChild(mk("line", { x1: expX(e), y1: 794, x2: expX(e), y2: 806, stroke: P.rule, "stroke-width": 0.75 }));
+          }
+          d.scale.items.forEach(function (it, i) {
+            const cx = expX(it.exp), up = i % 2 === 0;
+            const col = it.domain === "analogue" ? P.analogueInk : P.digital;
+            const g = mk("g", { id: "s5-sc-" + it.id, opacity: 0 });
+            g.appendChild(mk("line", { x1: cx, y1: 800, x2: cx, y2: up ? 744 : 852, stroke: col, "stroke-width": 1.5 }));
+            g.appendChild(mk("circle", { cx: cx, cy: 800, r: 7, fill: col }));
+            const lv = mk("text", { x: cx, y: up ? 730 : 878, class: "s5-lab", "text-anchor": "middle", fill: col });
+            lv.textContent = it.value;
+            g.appendChild(lv);
+            const ll = mk("text", { x: cx, y: up ? 702 : 906, class: "s5-det", "text-anchor": "middle" });
+            ll.textContent = it.label;
+            g.appendChild(ll);
+            si.appendChild(g);
+          });
+
+          // ---- uplink steps: a distinct return row, not a mirror -------
+          const us = $("#s5-ul-steps");
+          d.uplink.steps.forEach(function (st, i) {
+            const bx = 520 + i * 190;
+            const g = mk("g", { id: "s5-ul-" + st.id, opacity: 0 });
+            g.appendChild(mk("path", {
+              d: "M" + (bx + 168) + " 716 H" + (bx + 186),
+              stroke: P.analogue, "stroke-width": 1.5, fill: "none"
+            }));
+            g.appendChild(mk("rect", { x: bx, y: 680, width: 168, height: 72, rx: 6, fill: P.analogueWash, stroke: P.analogue, "stroke-width": 1.5 }));
+            addLines(g, wrap(st.label, 152, "s5-node"), bx + 84, 708, "s5-node", P.analogueInk, 24);
+            addLines(g, wrap(st.val, 152, "s5-det"), bx + 84, 776, "s5-det", null, 24);
+            us.appendChild(g);
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          // ---- 5.1 tracks and legend ------------------------------------
+          const t51 = C.at("5.1", S);
+          tl.fromTo("#s5-heading", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5 }, t51);
+          tl.fromTo("#s5-legend", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t51 + 0.2);
+          tl.fromTo("#s5-tl-rep", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5 }, t51 + 0.35);
+          tl.fromTo("#s5-tl-hw", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5 }, t51 + 0.5);
+
+          // ---- node reveals + the packet walking the chain --------------
+          const packet = "#s5-packet";
+          tl.to(packet, { opacity: 1, duration: 0.3 }, C.at("5.2", S));
+          gsap.set(packet, { x: pos.ip.cx, y: REP_Y + REP_H / 2 });
+
+          d.chain.forEach(function (n, i) {
+            const t = C.at(n.cue, S) + i * 0.16;
+            tl.to("#s5-n-" + n.id, { opacity: 1, duration: 0.4, ease: "power2.out" }, t);
+            // detail strip shows this node's figures while it is the subject
+            d.chain.forEach(function (m) {
+              tl.set("#s5-v-" + m.id, { opacity: m.id === n.id ? 1 : 0 }, t);
+            });
+            tl.to(packet, { x: pos[n.id].cx, duration: 0.5, ease: "power1.inOut" }, t);
+          });
+          tl.to("#s5-detail", { opacity: 1, duration: 0.4 }, C.at("5.2", S));
+
+          // ---- 5.4 transport, not transformation ------------------------
+          const t54 = C.at("5.4", S);
+          tl.fromTo("#s5-transport-note", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, t54 + 0.4);
+          tl.fromTo("#s5-5g", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t54 + 1.4);
+
+          // ---- 5.5 the crossover: blue becomes orange -------------------
+          const t55 = C.at("5.5", S);
+          tl.to(["#s5-transport-note", "#s5-5g"], { opacity: 0, duration: 0.4 }, t55 - 0.3);
+          tl.fromTo("#s5-cross", { opacity: 0, scale: 0.94, transformOrigin: dacX + "px 300px" },
+            { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" }, t55);
+          tl.to("#s5-packet-box", { fill: P.analogue, duration: 0.5, ease: "power2.inOut" }, t55 + 1.6);
+          tl.to("#s5-cross", { opacity: 0.45, duration: 0.5 }, C.at("5.6", S) + 1.4);
+
+          // ---- 5.7 back to digital at the handset -----------------------
+          tl.to("#s5-packet-box", { fill: P.digital, duration: 0.5, ease: "power2.inOut" }, C.at("5.7", S) + 1.4);
+
+          // ---- 5.8 logarithmic scale strip, held ------------------------
+          const t58 = C.at("5.8", S);
+          tl.to("#s5-detail", { opacity: 0, duration: 0.4 }, t58 - 0.4);
+          tl.to("#s5-scale", { opacity: 1, duration: 0.5 }, t58);
+          tl.fromTo("#s5-scale-axis", { scaleX: 0, transformOrigin: "0% 50%" },
+            { scaleX: 1, duration: 0.8, ease: "power2.out" }, t58);
+          d.scale.items.forEach(function (it, i) {
+            tl.fromTo("#s5-sc-" + it.id, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, t58 + 0.9 + i * 0.9);
+          });
+
+          // ---- 5.9 the accuracy caveat, set and left up -----------------
+          const t59 = C.at("5.9", S);
+          tl.to("#s5-scale", { opacity: 0, duration: 0.5 }, t59 - 0.3);
+          tl.fromTo("#s5-caveat", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t59);
+
+          // ---- 5.10 / 5.11 uplink as a distinct return row --------------
+          const t510 = C.at("5.10", S), t511 = C.at("5.11", S);
+          tl.to("#s5-uplink", { opacity: 1, duration: 0.5 }, t510);
+          d.uplink.steps.forEach(function (st, i) {
+            tl.fromTo("#s5-ul-" + st.id, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out" }, t510 + 0.3 + i * 0.35);
+          });
+          tl.fromTo("#s5-ul-dl-bar", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.6, ease: "power2.out" }, t511 + 0.2);
+          tl.fromTo("#s5-ul-ul-bar", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.6, ease: "power2.out" }, t511 + 0.5);
+          tl.fromTo("#s5-ul-lesson", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5 }, t511 + 1.2);
+
+          window.__timelines["s5-signal-chain"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,23 +1,119 @@
 <!doctype html>
-<!-- SCENE 7 — STUB, pending build -->
-<html lang="en"><head><meta charset="UTF-8" /></head><body>
-<template>
-  <style>
-    #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
-    .ground { position: absolute; inset: 0; background: #f6f8fa; }
-    .stub { position: absolute; left: 560px; top: 470px; font-size: 62px; color: #64748b; font-weight: 700; }
-  </style>
-  <div id="root" data-composition-id="s7-safety" data-width="1920" data-height="1080">
-    <div class="ground"></div>
-    <div class="stub" id="s7-safety-stub">SCENE 7</div>
-  </div>
-  <script>
-    (function () {
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      tl.fromTo("#s7-safety-stub", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
-      window.__timelines["s7-safety"] = tl;
-    })();
-  </script>
-</template>
-</body></html>
+<!--
+  SCENE 7 — SAFETY AND RECAP     absolute 5:11.44 → 5:39.92   (local 0 → 28.48)
+
+  The presenter returns to the full-frame slot (owned by the master timeline,
+  which grows the avatar back out of the corner cutout as this scene opens).
+
+  Beats (cue ids from content/content.js):
+    7.1  heading sets; the four safety cards stage in
+    7.2  DC arc flash at the busbar
+    7.3  opening a load breaker does NOT de-energise the busbar (emphasised)
+    7.4  RF exposure zones and climbing certification
+    7.5  VRLA weight; never lift by the terminals
+    7.6  close on the locator with all four subjects lit (master timeline)
+
+  Keep-out: the avatar occupies the full-frame slot at x 140–760, y 140–920.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        #s7-svg { position: absolute; left: 0; top: 0; }
+        .s7-h { font-size: 25px; font-weight: 700; letter-spacing: 0.15em; fill: #475569; }
+        .s7-lab { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s7-det { font-size: 25px; fill: #64748b; }
+        .s7-cap { font-size: 34px; font-weight: 700; fill: #0f172a; }
+        .s7-title { font-size: 62px; font-weight: 700; fill: #0f172a; }
+      </style>
+
+      <div id="root" data-composition-id="s7-safety" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <svg id="s7-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <text id="s7-heading" class="s7-h" x="840" y="220"></text>
+          <g id="s7-cards"></g>
+
+          <!-- closing recap -->
+          <g id="s7-outro" opacity="0">
+            <text id="s7-outro-t" class="s7-title" x="840" y="480"></text>
+            <text id="s7-outro-s" class="s7-cap" x="840" y="546" fill="#c2410c"></text>
+          </g>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE, S = "s7", d = C.s7, P = C.palette;
+          const NS = "http://www.w3.org/2000/svg";
+          const $ = function (s) { return document.querySelector(s); };
+          const mk = function (tag, a) {
+            const e = document.createElementNS(NS, tag);
+            Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });
+            return e;
+          };
+          const ruler = mk("text", { x: -9999, y: -9999 });
+          $("#s7-svg").appendChild(ruler);
+          const measure = function (str, cls) {
+            ruler.setAttribute("class", cls); ruler.textContent = str;
+            return ruler.getComputedTextLength();
+          };
+          const wrap = function (text, maxW, cls) {
+            const w = text.split(" "), out = []; let cur = "";
+            w.forEach(function (x) {
+              const cand = cur ? cur + " " + x : x;
+              if (measure(cand, cls) > maxW && cur) { out.push(cur); cur = x; } else { cur = cand; }
+            });
+            if (cur) out.push(cur);
+            return out;
+          };
+
+          $("#s7-heading").textContent = d.heading;
+          $("#s7-outro-t").textContent = d.outro.title;
+          $("#s7-outro-s").textContent = d.outro.sub;
+
+          // ---- four safety cards, one per beat -------------------------
+          const cards = $("#s7-cards");
+          d.cards.forEach(function (c, i) {
+            const y = 260 + i * 148;
+            const g = mk("g", { id: "s7-card-" + c.id, opacity: 0 });
+            g.appendChild(mk("rect", { x: 840, y: y, width: 1020, height: 136, rx: 10, fill: "#ffffff", stroke: P.rule, "stroke-width": 1.5 }));
+            g.appendChild(mk("rect", { x: 840, y: y, width: 8, height: 136, rx: 2, fill: P.fault }));
+            const nm = mk("text", { x: 876, y: y + 44, class: "s7-cap", fill: P.fault });
+            nm.textContent = c.name;
+            g.appendChild(nm);
+            wrap(c.body, 950, "s7-det").forEach(function (ln, j) {
+              const t = mk("text", { x: 876, y: y + 84 + j * 30, class: "s7-det" });
+              t.textContent = ln;
+              g.appendChild(t);
+            });
+            cards.appendChild(g);
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          const t71 = C.at("7.1", S);
+          tl.fromTo("#s7-heading", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.45 }, t71);
+
+          d.cards.forEach(function (c) {
+            const t = C.at(c.cue, S);
+            tl.fromTo("#s7-card-" + c.id, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, t);
+          });
+
+          // ---- 7.6 close on the recap ----------------------------------
+          const t76 = C.at("7.6", S);
+          tl.to("#s7-cards", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, t76 - 0.4);
+          tl.to("#s7-heading", { opacity: 0, duration: 0.4 }, t76 - 0.4);
+          tl.fromTo("#s7-outro", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, t76);
+
+          window.__timelines["s7-safety"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
