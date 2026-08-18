@@ -1,23 +1,283 @@
 <!doctype html>
-<!-- SCENE 3 — STUB, pending build -->
-<html lang="en"><head><meta charset="UTF-8" /></head><body>
-<template>
-  <style>
-    #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
-    .ground { position: absolute; inset: 0; background: #f6f8fa; }
-    .stub { position: absolute; left: 560px; top: 470px; font-size: 62px; color: #64748b; font-weight: 700; }
-  </style>
-  <div id="root" data-composition-id="s3-rru" data-width="1920" data-height="1080">
-    <div class="ground"></div>
-    <div class="stub" id="s3-rru-stub">SCENE 3</div>
-  </div>
-  <script>
-    (function () {
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      tl.fromTo("#s3-rru-stub", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
-      window.__timelines["s3-rru"] = tl;
-    })();
-  </script>
-</template>
-</body></html>
+<!--
+  SCENE 3 — TOWER TOP: THE RRU   absolute 0:58.74 → 2:00.54   (local 0 → 61.80)
+
+  Beats (cue ids from content/content.js):
+    3.1   camera pushes into the tower-top region; it resolves into a
+          three-quarter view of the Remote Radio Unit behind a panel antenna
+    3.2   heat-sink body            } timed reveals, in narration order —
+    3.3   pipe mount + downtilt     } each was a click-to-expand callout in
+    3.4   coax jumper + boot        } the interactive source diagram
+    3.5   two LC fibre connectors   }
+    3.6   DC power connector        }
+    3.7   status LEDs, then earth strap (offset within the same cue)
+    3.8   the question: why radio at the top, baseband at the bottom
+    3.9   cross-fade to the feeder-loss comparison — coax vs fibre
+    3.10  the conclusion: run RF one metre, send light and DC the long way
+    3.11  cross-fade back to the RRU; LED cluster isolates
+    3.12  LED state change green → red, with its text label and first checks
+
+  Status is never colour alone: every LED carries a text state label.
+  Fault is an outline glow, never a fill swap.
+  Keep-out: the avatar corner cutout occupies x 40–462, y 473–1004.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        #s3-svg { position: absolute; left: 0; top: 0; }
+        .s3-h { font-size: 25px; font-weight: 700; letter-spacing: 0.15em; fill: #475569; }
+        .s3-lab { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s3-det { font-size: 25px; fill: #64748b; }
+        .s3-cap { font-size: 34px; font-weight: 700; fill: #0f172a; }
+        .s3-led-name { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s3-led-state { font-size: 25px; font-weight: 700; }
+      </style>
+
+      <div id="root" data-composition-id="s3-rru" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <svg id="s3-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <text id="s3-heading" class="s3-h" x="80" y="76"></text>
+          <text id="s3-expand" class="s3-det" x="80" y="118"></text>
+
+          <!-- ============ the RRU assembly (camera pushes into this) ===== -->
+          <g id="s3-rru-view">
+            <g id="s3-cam3">
+              <!-- panel antenna behind -->
+              <g id="s3-antenna">
+                <rect x="560" y="196" width="132" height="640" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M584 236 H668 M584 276 H668 M584 316 H668" stroke="#64748b" stroke-width="0.75"/>
+                <text class="s3-det" x="626" y="874" text-anchor="middle">Panel antenna</text>
+              </g>
+
+              <!-- galvanised pipe mount -->
+              <g id="s3-mount">
+                <rect x="726" y="180" width="30" height="676" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>
+                <path d="M733 180 V856" stroke="#64748b" stroke-width="0.75"/>
+                <!-- downtilt bracket -->
+                <path d="M756 424 L818 404 L818 452 L756 472 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M762 434 L812 418" stroke="#64748b" stroke-width="0.75"/>
+                <path d="M760 560 L820 544 L820 590 L760 606 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+              </g>
+
+              <!-- RRU body, three-quarter: front + top + right faces -->
+              <g id="s3-body">
+                <path d="M818 388 L878 348 L1220 348 L1160 388 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M1160 388 L1220 348 L1220 660 L1160 700 Z" fill="#cbd5e1" stroke="#0f172a" stroke-width="1.5"/>
+                <rect x="818" y="388" width="342" height="312" fill="#f1f5f9" stroke="#0f172a" stroke-width="1.5"/>
+                <!-- heat-sink fins -->
+                <path d="M838 388 V600 M858 388 V600 M878 388 V600 M898 388 V600 M918 388 V600 M938 388 V600 M958 388 V600 M978 388 V600 M998 388 V600 M1018 388 V600 M1038 388 V600 M1058 388 V600 M1078 388 V600 M1098 388 V600 M1118 388 V600 M1138 388 V600"
+                      stroke="#64748b" stroke-width="0.75"/>
+                <path d="M1172 380 L1212 356 M1186 380 L1220 360" stroke="#64748b" stroke-width="0.75"/>
+              </g>
+
+              <!-- fault outline glow (never a fill swap) -->
+              <rect id="s3-glow" x="810" y="340" width="420" height="368" rx="6"
+                    fill="none" stroke="#dc2626" stroke-width="1.5" opacity="0"/>
+
+              <!-- coax jumper + weatherproof boot -->
+              <g id="s3-jumper">
+                <path id="s3-jumper-path" d="M902 348 C902 286 830 268 692 262" stroke="#ea580c" stroke-width="1.5" fill="none"/>
+                <rect x="878" y="330" width="48" height="30" rx="7" fill="#1f2937" stroke="#0f172a" stroke-width="1.5"/>
+                <rect x="676" y="248" width="36" height="28" rx="7" fill="#1f2937" stroke="#0f172a" stroke-width="1.5"/>
+              </g>
+
+              <!-- two LC fibre connectors on the underside -->
+              <g id="s3-fibre">
+                <rect x="846" y="700" width="34" height="40" rx="4" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+                <rect x="890" y="700" width="34" height="40" rx="4" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+                <path d="M863 740 V800 M907 740 V800" stroke="#1d4ed8" stroke-width="1.5" fill="none"/>
+              </g>
+
+              <!-- DC power connector: polarity shown as strokes only -->
+              <g id="s3-dc">
+                <circle cx="994" cy="720" r="22" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+                <circle cx="986" cy="720" r="5" fill="none" stroke="#d92626" stroke-width="1.5"/>
+                <circle cx="1002" cy="720" r="5" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+                <path d="M986 742 V804" stroke="#d92626" stroke-width="1.5" fill="none"/>
+                <path d="M1002 742 V804" stroke="#1f2937" stroke-width="1.5" fill="none"/>
+              </g>
+
+              <!-- status LED cluster: circle + name + text state, always -->
+              <g id="s3-leds">
+                <rect x="838" y="606" width="302" height="94" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+              </g>
+
+              <!-- earth strap to the tower-top earth bar -->
+              <g id="s3-earth">
+                <path d="M1160 660 C1214 680 1242 740 1242 796" stroke="#b45309" stroke-width="1.5" fill="none"/>
+                <rect x="1210" y="796" width="64" height="16" rx="3" fill="#b45309" stroke="#b45309" stroke-width="1.5"/>
+                <text class="s3-det" x="1242" y="842" text-anchor="middle">Earth bar</text>
+              </g>
+            </g>
+          </g>
+
+          <!-- right-hand reveal stack: one row per timed reveal -->
+          <g id="s3-stack"></g>
+
+          <!-- ============ feeder-loss comparison (cross-faded in) ======== -->
+          <g id="s3-loss" opacity="0">
+            <text id="s3-loss-h" class="s3-h" x="520" y="300"></text>
+            <g id="s3-loss-b0">
+              <text class="s3-lab" x="520" y="380"></text>
+              <rect x="520" y="404" width="900" height="46" rx="4" fill="#ffedd5" stroke="#cbd5e1" stroke-width="0.75"/>
+              <rect id="s3-bar0" x="520" y="404" width="900" height="46" rx="4" fill="#ea580c"/>
+              <text class="s3-cap" x="1452" y="440" fill="#c2410c"></text>
+              <text class="s3-det" x="520" y="486"></text>
+            </g>
+            <g id="s3-loss-b1">
+              <text class="s3-lab" x="520" y="576"></text>
+              <rect x="520" y="600" width="900" height="46" rx="4" fill="#dbeafe" stroke="#cbd5e1" stroke-width="0.75"/>
+              <rect id="s3-bar1" x="520" y="600" width="63" height="46" rx="4" fill="#1d4ed8"/>
+              <text class="s3-cap" x="1452" y="636" fill="#1d4ed8"></text>
+              <text class="s3-det" x="520" y="682"></text>
+            </g>
+            <text id="s3-loss-c" class="s3-cap" x="520" y="800"></text>
+          </g>
+
+          <!-- ============ fault card (3.12) ============================== -->
+          <g id="s3-fault" opacity="0">
+            <rect x="1300" y="620" width="560" height="270" rx="10" fill="#ffffff" stroke="#dc2626" stroke-width="1.5"/>
+            <text id="s3-fault-t" class="s3-h" x="1332" y="668" fill="#dc2626"></text>
+            <text id="s3-fault-l" class="s3-cap" x="1332" y="712" fill="#dc2626"></text>
+            <g id="s3-fault-checks"></g>
+          </g>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE, S = "s3", d = C.s3;
+          const NS = "http://www.w3.org/2000/svg";
+          const $ = function (s) { return document.querySelector(s); };
+          const mk = function (tag, attrs) {
+            const e = document.createElementNS(NS, tag);
+            Object.keys(attrs || {}).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+            return e;
+          };
+
+          $("#s3-heading").textContent = d.heading;
+          $("#s3-expand").textContent = d.expand;
+
+          // ---- LED cluster: circle + name + explicit text state ---------
+          const ledG = $("#s3-leds");
+          d.led.states.forEach(function (st, i) {
+            const cx = 889 + i * 101;
+            const g = mk("g", { id: "s3-led-" + st.id });
+            g.appendChild(mk("circle", { cx: cx, cy: 630, r: 10, fill: "#15803d", stroke: "#0f172a", "stroke-width": 1.5, id: "s3-dot-" + st.id }));
+            const nm = mk("text", { x: cx, y: 664, class: "s3-led-name", "text-anchor": "middle" });
+            nm.textContent = st.name;
+            g.appendChild(nm);
+            const okT = mk("text", { x: cx, y: 692, class: "s3-led-state", fill: "#15803d", "text-anchor": "middle", id: "s3-ok-" + st.id });
+            okT.textContent = st.ok;
+            g.appendChild(okT);
+            const badT = mk("text", { x: cx, y: 692, class: "s3-led-state", fill: "#dc2626", "text-anchor": "middle", id: "s3-bad-" + st.id, opacity: 0 });
+            badT.textContent = st.bad;
+            g.appendChild(badT);
+            ledG.appendChild(g);
+          });
+
+          // ---- right-hand reveal stack ----------------------------------
+          const stack = $("#s3-stack");
+          d.reveals.forEach(function (r, i) {
+            const y = 292 + i * 88;
+            const g = mk("g", { id: "s3-row-" + r.id });
+            g.appendChild(mk("rect", { x: 1360, y: y - 30, width: 8, height: 62, rx: 2, fill: "#9333ea" }));
+            const nm = mk("text", { x: 1392, y: y, class: "s3-lab" });
+            nm.textContent = r.name;
+            g.appendChild(nm);
+            const dt = mk("text", { x: 1392, y: y + 30, class: "s3-det" });
+            dt.textContent = r.detail;
+            g.appendChild(dt);
+            stack.appendChild(g);
+          });
+
+          // ---- loss comparison copy ------------------------------------
+          $("#s3-loss-h").textContent = d.loss.heading;
+          d.loss.bars.forEach(function (b, i) {
+            const g = $("#s3-loss-b" + i), t = g.querySelectorAll("text");
+            t[0].textContent = b.label;
+            t[1].textContent = b.value;
+            t[2].textContent = b.note;
+          });
+          $("#s3-loss-c").textContent = d.loss.conclusion;
+
+          // ---- fault card copy -----------------------------------------
+          $("#s3-fault-t").textContent = d.led.faultTitle;
+          $("#s3-fault-l").textContent = d.led.faultLabel;
+          const fc = $("#s3-fault-checks");
+          d.led.firstChecks.forEach(function (line, i) {
+            const t = mk("text", { x: 1332, y: 762 + i * 40, class: "s3-det" });
+            t.textContent = line;
+            fc.appendChild(t);
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          // ---- 3.1 camera push into the tower top ----------------------
+          // The drill-down level of the source diagram becomes a scale +
+          // translate that resolves the region into the RRU three-quarter view.
+          const t31 = C.at("3.1", S);
+          tl.fromTo("#s3-cam3",
+            { transformOrigin: "940px 500px", scale: 0.34, x: -110, y: -230, opacity: 0 },
+            { scale: 1, x: 0, y: 0, opacity: 1, duration: 1.5, ease: "power3.out" }, t31);
+          tl.fromTo("#s3-heading", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5 }, t31);
+          tl.fromTo("#s3-expand", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t31 + 0.3);
+
+          // ---- 3.2 – 3.7 timed reveals, in narration order --------------
+          const partSel = {
+            body: "#s3-body", mount: "#s3-mount", jumper: "#s3-jumper",
+            fibre: "#s3-fibre", dc: "#s3-dc", leds: "#s3-leds", earth: "#s3-earth"
+          };
+          // everything except the antenna and body starts hidden
+          gsap.set(["#s3-mount", "#s3-jumper", "#s3-fibre", "#s3-dc", "#s3-leds", "#s3-earth"], { opacity: 0 });
+          d.reveals.forEach(function (r) {
+            const t = C.at(r.cue, S) + (r.offset || 0);
+            tl.to(partSel[r.id], { opacity: 1, duration: 0.45, ease: "power2.out" }, t);
+            tl.fromTo("#s3-row-" + r.id, { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.45, ease: "power2.out" }, t);
+          });
+
+          // ---- 3.8 – 3.10 cross-fade to the feeder-loss comparison ------
+          // A layer toggle in the source diagram becomes a cross-fade on a cue.
+          const t38 = C.at("3.8", S), t39 = C.at("3.9", S), t310 = C.at("3.10", S);
+          tl.to("#s3-rru-view", { opacity: 0.12, duration: 0.6, ease: "power2.inOut" }, t38);
+          tl.to("#s3-stack", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, t38);
+          tl.to("#s3-loss", { opacity: 1, duration: 0.6, ease: "power2.inOut" }, t38 + 0.35);
+          tl.fromTo("#s3-bar0", { scaleX: 0, transformOrigin: "0% 50%" },
+            { scaleX: 1, duration: 0.9, ease: "power2.out" }, t39);
+          tl.fromTo("#s3-bar1", { scaleX: 0, transformOrigin: "0% 50%" },
+            { scaleX: 1, duration: 0.9, ease: "power2.out" }, t39 + 0.5);
+          tl.fromTo("#s3-loss-c", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, t310);
+
+          // ---- 3.11 back to the RRU, LEDs isolate -----------------------
+          const t311 = C.at("3.11", S);
+          tl.to("#s3-loss", { opacity: 0, duration: 0.5, ease: "power2.inOut" }, t311 - 0.5);
+          tl.to("#s3-rru-view", { opacity: 1, duration: 0.6, ease: "power2.inOut" }, t311 - 0.4);
+          tl.to("#s3-leds", { scale: 1.1, transformOrigin: "989px 653px", duration: 0.7, ease: "power2.out" }, t311);
+
+          // ---- 3.12 LED state change + first checks ---------------------
+          const t312 = C.at("3.12", S);
+          tl.to("#s3-dot-run", { fill: C.palette.fault, duration: 0.25 }, t312);
+          tl.to("#s3-dot-alm", { fill: C.palette.fault, duration: 0.25 }, t312 + 0.15);
+          tl.to("#s3-dot-act", { fill: C.palette.metal, duration: 0.25 }, t312 + 0.3);
+          ["run", "alm", "act"].forEach(function (k, i) {
+            tl.to("#s3-ok-" + k, { opacity: 0, duration: 0.25 }, t312 + i * 0.15);
+            tl.to("#s3-bad-" + k, { opacity: 1, duration: 0.25 }, t312 + i * 0.15);
+          });
+          // fault is an outline glow, pulsed a finite number of times
+          tl.to("#s3-glow", { opacity: 1, duration: 0.3 }, t312);
+          tl.to("#s3-glow", { opacity: 0.35, duration: 0.55, repeat: 3, yoyo: true, ease: "sine.inOut" }, t312 + 0.3);
+          tl.fromTo("#s3-fault", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, t312 + 0.4);
+
+          window.__timelines["s3-rru"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1142,16 +1142,16 @@ window.CELLSITE = (function () {
     },
     led: {
       states: [
-        { id: 'run', name: 'RUN', ok: 'HEALTHY', bad: 'FAULT' },
+        { id: 'run', name: 'RUN', ok: 'OK',      bad: 'FAULT' },
         { id: 'alm', name: 'ALM', ok: 'CLEAR',   bad: 'ALARM' },
-        { id: 'act', name: 'ACT', ok: 'TRAFFIC', bad: 'NO TRAFFIC' }
+        { id: 'act', name: 'ACT', ok: 'TRAFFIC', bad: 'IDLE' }
       ],
       faultTitle: 'RRU ALARM',
       faultLabel: 'RUN: FAULT · ALM: ALARM',
       firstChecks: [
-        '1 — Fibre: SFP seated, ferrule clean and capped',
+        '1 — Fibre: SFP seated, ferrule clean',
         '2 — DC: breaker closed at the cabinet',
-        '3 — Read LEDs from the ground before you plan a climb'
+        '3 — Read the LEDs before planning a climb'
       ]
     }
   };
@@ -1193,18 +1193,18 @@ window.CELLSITE = (function () {
       heading: 'MAINS FAILURE SEQUENCE',
       readoutLabel: 'DC BUS',
       unit: 'V',
-      note: 'Thresholds representative for a −48 V LTE macro plant',
+      note: 'Representative −48 V plant thresholds',
       stages: [
         { cue: '4.9',  id: 'healthy', label: 'MAINS HEALTHY', v0: 54.0, v1: 54.0, focus: 'rect',
           alarm: null, alarmState: 'NO ALARMS', tech: 'Rectifiers float-charge the string' },
         { cue: '4.10', id: 'acfail',  label: 'AC SUPPLY LOST', v0: 54.0, v1: 53.5, focus: 'ac',
           alarm: 'MAINS FAILURE', alarmState: 'MAJOR', tech: 'Rectifier modules drop out, LEDs go dark' },
         { cue: '4.11', id: 'battery', label: 'BATTERY DISCHARGE', v0: 53.5, v1: 50.5, focus: 'batt',
-          alarm: 'BATTERY ON DISCHARGE', alarmState: 'MAJOR', tech: 'String was already across the bus — no switchover gap' },
+          alarm: 'BATTERY ON DISCHARGE', alarmState: 'MAJOR', tech: 'Already across the bus — no switchover gap' },
         { cue: '4.12', id: 'sag',     label: 'BUS VOLTAGE SAGGING', v0: 50.5, v1: 46.0, focus: 'dist',
           alarm: 'DC LOW VOLTAGE', alarmState: 'CRITICAL', tech: 'Raised on the dry-contact terminal block' },
         { cue: '4.13', id: 'lvd',     label: 'LVD TRIP — LOADS SHED', v0: 46.0, v1: 43.0, focus: 'lvd',
-          alarm: 'LOW-VOLTAGE DISCONNECT', alarmState: 'SITE DOWN', tech: 'Contactor opens to protect the battery from deep discharge' }
+          alarm: 'LOW-VOLTAGE DISCONNECT', alarmState: 'SITE DOWN', tech: 'Contactor opens to protect the battery' }
       ]
     }
   };
