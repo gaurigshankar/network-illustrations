@@ -1193,7 +1193,7 @@ window.CELLSITE = (function () {
       heading: 'MAINS FAILURE SEQUENCE',
       readoutLabel: 'DC BUS',
       unit: 'V',
-      note: 'Representative −48 V plant thresholds',
+      note: 'Representative thresholds',
       stages: [
         { cue: '4.9',  id: 'healthy', label: 'MAINS HEALTHY', v0: 54.0, v1: 54.0, focus: 'rect',
           alarm: null, alarmState: 'NO ALARMS', tech: 'Rectifiers float-charge the string' },
@@ -1215,7 +1215,7 @@ window.CELLSITE = (function () {
   const s5 = {
     heading: 'THE SIGNAL CHAIN — DOWNLINK',
     trackLabels: { rep: 'REPRESENTATION — what the signal is', hw: 'HARDWARE / MEDIUM — where it lives' },
-    domainTags: { digital: 'DIGITAL', analogue: 'ANALOGUE', cross: 'CROSSOVER' },
+    domainTags: { digital: 'DIGITAL', analogue: 'ANALOGUE' },
     chain: [
       { kind: 'stage',     id: 'ip',      cue: '5.2', domain: 'digital',  rep: 'IP packet',      hw: 'Core network',   val: '~1500 B MTU, GTP-U (typical)' },
       { kind: 'transport', id: 'backhaul',cue: '5.2', domain: 'digital',  rep: 'unchanged',      hw: 'Backhaul',      val: 'fibre or microwave · 1–10 Gbps (typical)' },
@@ -1223,12 +1223,12 @@ window.CELLSITE = (function () {
       { kind: 'xform',     id: 'baseband',cue: '5.3', domain: 'digital',  rep: 'Baseband',       hw: 'BBU / DU',       val: 'coding · QPSK–256QAM · MIMO · IFFT' },
       { kind: 'stage',     id: 'iq',      cue: '5.3', domain: 'digital',  rep: 'IQ samples',     hw: 'BBU / DU',       val: '≈15.36 Msps @ 10 MHz (typical)' },
       { kind: 'transport', id: 'cpri',    cue: '5.4', domain: 'digital',  rep: 'unchanged',      hw: 'Fibre CPRI',    val: '2.5 / 4.9 / 9.8 / 10.1 Gbps (typical)' },
-      { kind: 'xform',     id: 'dac',     cue: '5.5', domain: 'cross',    rep: 'DAC + upconvert',hw: 'RRU',            val: 'THE DIGITAL → ANALOGUE CROSSOVER' },
+      { kind: 'xform',     id: 'dac',     cue: '5.5', domain: 'cross',    rep: 'DAC + upconvert', tag: 'D → A', hw: 'RRU',            val: 'THE DIGITAL → ANALOGUE CROSSOVER' },
       { kind: 'stage',     id: 'rf',      cue: '5.6', domain: 'analogue', rep: 'Analogue RF',    hw: 'RRU, after PA',  val: '40–46 dBm ≈ 10–40 W per branch (typical)' },
       { kind: 'transport', id: 'coax',    cue: '5.6', domain: 'analogue', rep: 'unchanged',      hw: 'Coax jumper',   val: 'the short run — RF travels one metre' },
       { kind: 'xform',     id: 'radiate', cue: '5.6', domain: 'analogue', rep: 'Radiated beam',  hw: 'Panel antenna',  val: '15–18 dBi · 65° beamwidth (typical)' },
       { kind: 'transport', id: 'air',     cue: '5.6', domain: 'analogue', rep: 'Propagation',    hw: 'Air',           val: 'path loss 120–145 dB (typical)' },
-      { kind: 'xform',     id: 'adc',     cue: '5.7', domain: 'cross',    rep: 'LNA + ADC',      hw: 'Handset',        val: 'analogue → digital, back again' },
+      { kind: 'xform',     id: 'adc',     cue: '5.7', domain: 'cross',    rep: 'LNA + ADC',      tag: 'A → D', hw: 'Handset',        val: 'analogue → digital, back again' },
       { kind: 'stage',     id: 'out',     cue: '5.7', domain: 'digital',  rep: 'Recovered packet', hw: 'Handset app',  val: 'identical payload to the left-hand end' }
     ],
     crossover: { label: 'DIGITAL → ANALOGUE', sub: 'the signal changes nature here' },
@@ -1252,7 +1252,7 @@ window.CELLSITE = (function () {
     caveat: 'ALL FIGURES: representative ranges for typical LTE macro equipment — not manufacturer specifications.',
     uplink: {
       heading: 'UPLINK — NOT A MIRROR IMAGE',
-      stepsNote: 'Representative ranges, typical LTE macro',
+      stepsNote: 'Representative ranges',
       steps: [
         { id: 'ue',   label: 'Handset PA',        val: '≤ 23 dBm ≈ 0.2 W' },
         { id: 'path', label: 'Same path loss',    val: '120–145 dB' },

@@ -105,7 +105,6 @@
           <g id="s5-uplink" opacity="0">
             <text id="s5-ul-h" class="s5-h" x="520" y="646" fill="#c2410c"></text>
             <g id="s5-ul-steps"></g>
-            <text id="s5-ul-note" class="s5-det" x="1500" y="886"></text>
             <g id="s5-ul-asym">
               <text id="s5-ul-asym-h" class="s5-h" x="1500" y="700"></text>
               <text id="s5-ul-dl-l" class="s5-det" x="1500" y="738"></text>
@@ -114,7 +113,7 @@
               <text id="s5-ul-ul-l" class="s5-det" x="1500" y="798"></text>
               <rect id="s5-ul-ul-bar" x="1500" y="808" width="42" height="18" rx="4" fill="#c2410c"/>
               <text id="s5-ul-ul-v" class="s5-lab" x="1860" y="798" text-anchor="end" fill="#c2410c"></text>
-              <text id="s5-ul-ratio" class="s5-det" x="1500" y="852"></text>
+              <g id="s5-ul-ratio"></g>
             </g>
             <text id="s5-ul-lesson" class="s5-cap" x="520" y="870" fill="#c2410c"></text>
           </g>
@@ -180,8 +179,11 @@
           $("#s5-ul-dl-v").textContent = d.uplink.asymmetry.dl.value;
           $("#s5-ul-ul-l").textContent = d.uplink.asymmetry.ul.label;
           $("#s5-ul-ul-v").textContent = d.uplink.asymmetry.ul.value;
-          $("#s5-ul-ratio").textContent = d.uplink.asymmetry.ratio;
-          $("#s5-ul-note").textContent = d.uplink.stepsNote;
+          wrap(d.uplink.asymmetry.ratio, 372, "s5-det").forEach(function (ln, i) {
+            const t = mk("text", { x: 1500, y: 846 + i * 30, class: "s5-det" });
+            t.textContent = ln;
+            $("#s5-ul-ratio").appendChild(t);
+          });
           $("#s5-ul-lesson").textContent = d.uplink.asymmetry.lesson;
           
           // ---- lay the chain out ---------------------------------------
@@ -217,8 +219,8 @@
               addLines(g, wrap(n.rep, w - 16, "s5-node"), cx, REP_Y + 32, "s5-node", domInk, 24);
               // domain is never conveyed by colour alone
               const tag = mk("text", { x: cx, y: REP_Y + REP_H - 12, class: "s5-det", "text-anchor": "middle", fill: domInk });
-              tag.textContent = n.domain === "analogue" ? d.domainTags.analogue
-                : n.domain === "cross" ? d.domainTags.cross : d.domainTags.digital;
+              tag.textContent = n.tag ? n.tag
+                : n.domain === "analogue" ? d.domainTags.analogue : d.domainTags.digital;
               g.appendChild(tag);
             }
 
@@ -341,6 +343,9 @@
 
           // ---- 5.7 back to digital at the handset -----------------------
           tl.to("#s5-packet-box", { fill: P.digital, duration: 0.5, ease: "power2.inOut" }, C.at("5.7", S) + 1.4);
+
+          // the packet has arrived; clear it so it does not sit over the last label
+          tl.to(packet, { opacity: 0, duration: 0.4 }, C.at("5.7", S) + 2.4);
 
           // ---- 5.8 logarithmic scale strip, held ------------------------
           const t58 = C.at("5.8", S);
