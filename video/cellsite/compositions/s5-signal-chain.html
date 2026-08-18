@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- SCENE 5 — STUB, pending build -->
+<html lang="en"><head><meta charset="UTF-8" /></head><body>
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+    .ground { position: absolute; inset: 0; background: #f6f8fa; }
+    .stub { position: absolute; left: 560px; top: 470px; font-size: 62px; color: #64748b; font-weight: 700; }
+  </style>
+  <div id="root" data-composition-id="s5-signal-chain" data-width="1920" data-height="1080">
+    <div class="ground"></div>
+    <div class="stub" id="s5-signal-chain-stub">SCENE 5</div>
+  </div>
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#s5-signal-chain-stub", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0);
+      window.__timelines["s5-signal-chain"] = tl;
+    })();
+  </script>
+</template>
+</body></html>

@@ -1,0 +1,255 @@
+<!doctype html>
+<!--
+  SCENE 2 — SITE OVERVIEW        absolute 0:17.61 → 0:58.74   (local 0 → 41.13)
+
+  Wide elevation of a macro site, with a slow camera push from wide to mid.
+
+  Beats (cue ids from content/content.js):
+    2.1  site elevation fades up; camera push begins and runs the whole scene
+    2.2  what's at the top — antennas light, plan-view sector rose draws
+    2.3  RRUs fade in behind each antenna (acronym expanded on screen)
+    2.4  what's at the bottom — base cabinet highlights
+    2.5  the two things that run between — fibre (blue) and DC (red/black) draw down
+    2.6  locator graphic is established (owned by the master timeline)
+
+  Interaction restaged: the source diagram's click-to-expand callouts become
+  reveals keyed to the narration line that names them.
+  Keep-out: the avatar corner cutout occupies x 40–462, y 473–1004.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        #s2-svg { position: absolute; left: 0; top: 0; }
+        .s2-h { font-size: 25px; font-weight: 700; letter-spacing: 0.15em; fill: #475569; }
+        .s2-lab { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s2-det { font-size: 25px; fill: #64748b; }
+        .s2-cap { font-size: 34px; font-weight: 700; fill: #0f172a; }
+      </style>
+
+      <div id="root" data-composition-id="s2-site-overview" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <svg id="s2-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <!-- camera group: everything pushes together, wide → mid -->
+          <g id="s2-cam">
+           <g id="s2-fit" transform="translate(96,20) scale(0.88)">
+            <!-- ground plane + buried ring earth -->
+            <g id="s2-site">
+              <line x1="470" y1="946" x2="1560" y2="946" stroke="#64748b" stroke-width="1.5"/>
+              <path id="s2-earth" d="M545 966 H1500" stroke="#b45309" stroke-width="1.5" stroke-dasharray="9 7" fill="none"/>
+
+              <!-- lattice tower -->
+              <path d="M812 214 L742 946 M948 214 L1018 946"
+                    stroke="#64748b" stroke-width="1.5" fill="none"/>
+              <path d="M816 260 H944 M806 350 H954 M796 440 H964 M786 530 H974 M776 620 H984 M766 710 H994 M756 800 H1004 M748 880 H1012"
+                    stroke="#64748b" stroke-width="0.75" fill="none"/>
+              <path d="M816 260 L954 350 M954 350 L806 440 M796 440 L974 530 M974 530 L776 620 M776 620 L994 710 M994 710 L756 800 M756 800 L1012 880"
+                    stroke="#64748b" stroke-width="0.75" fill="none"/>
+              <!-- headframe -->
+              <path d="M792 214 H968" stroke="#64748b" stroke-width="1.5" fill="none"/>
+            </g>
+
+            <!-- antennas + RRUs, one group per sector -->
+            <g id="s2-ant-group">
+              <g id="s2-ant-a">
+                <rect x="742" y="120" width="34" height="118" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+                <line x1="759" y1="238" x2="759" y2="256" stroke="#64748b" stroke-width="1.5"/>
+              </g>
+              <g id="s2-ant-b">
+                <rect x="863" y="104" width="34" height="134" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+                <line x1="880" y1="238" x2="880" y2="256" stroke="#64748b" stroke-width="1.5"/>
+              </g>
+              <g id="s2-ant-c">
+                <rect x="984" y="120" width="34" height="118" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+                <line x1="1001" y1="238" x2="1001" y2="256" stroke="#64748b" stroke-width="1.5"/>
+              </g>
+            </g>
+            <g id="s2-rru-group">
+              <g id="s2-rru-a">
+                <rect x="700" y="150" width="34" height="52" rx="3" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M706 158 V194 M712 158 V194 M718 158 V194 M724 158 V194 M730 158 V194" stroke="#64748b" stroke-width="0.75"/>
+              </g>
+              <g id="s2-rru-b">
+                <rect x="905" y="134" width="34" height="52" rx="3" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M911 142 V178 M917 142 V178 M923 142 V178 M929 142 V178 M935 142 V178" stroke="#64748b" stroke-width="0.75"/>
+              </g>
+              <g id="s2-rru-c">
+                <rect x="1026" y="150" width="34" height="52" rx="3" fill="#e2e8f0" stroke="#0f172a" stroke-width="1.5"/>
+                <path d="M1032 158 V194 M1038 158 V194 M1044 158 V194 M1050 158 V194 M1056 158 V194" stroke="#64748b" stroke-width="0.75"/>
+              </g>
+            </g>
+
+            <!-- cable ladder rails down the tower face -->
+            <g id="s2-ladder">
+              <path d="M866 258 L836 900 M894 258 L924 900" stroke="#64748b" stroke-width="0.75" fill="none"/>
+            </g>
+            <!-- the two things that run up: fibre (digital blue) and DC (red/black strokes) -->
+            <path id="s2-fibre" d="M874 258 L850 900 L1128 900" stroke="#1d4ed8" stroke-width="1.5" fill="none"/>
+            <path id="s2-dc-pos" d="M884 258 L906 900 L1128 900" stroke="#d92626" stroke-width="1.5" fill="none"/>
+            <path id="s2-dc-neg" d="M890 258 L914 900 L1128 900" stroke="#1f2937" stroke-width="1.5" fill="none"/>
+
+            <!-- base cabinet -->
+            <g id="s2-cab">
+              <rect x="1128" y="800" width="188" height="146" rx="5" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+              <path d="M1148 826 H1296 M1148 862 H1296 M1148 898 H1296" stroke="#64748b" stroke-width="0.75"/>
+              <line x1="1222" y1="800" x2="1222" y2="946" stroke="#64748b" stroke-width="0.75"/>
+            </g>
+
+            <!-- plan-view sector rose: azimuth is not visible in elevation -->
+            <g id="s2-rose">
+              <circle cx="1300" cy="430" r="66" fill="none" stroke="#cbd5e1" stroke-width="0.75"/>
+              <path id="s2-rose-a" d="M1300 430 L1300 358 A72 72 0 0 1 1362 466 Z" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+              <path id="s2-rose-b" d="M1300 430 L1362 466 A72 72 0 0 1 1238 466 Z" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+              <path id="s2-rose-c" d="M1300 430 L1238 466 A72 72 0 0 1 1300 358 Z" fill="#dbeafe" stroke="#1d4ed8" stroke-width="1.5"/>
+              <text class="s2-det" id="s2-rose-l" x="1300" y="536" text-anchor="middle">0° · 120° · 240°</text>
+            </g>
+
+            <!-- callouts (leader + label), revealed in narration order -->
+            <g id="s2-call-ant">
+              <path d="M1030 132 H1148" stroke="#64748b" stroke-width="1" fill="none"/>
+              <text class="s2-lab" x="1160" y="126"></text>
+              <text class="s2-det" x="1160" y="158"></text>
+            </g>
+            <g id="s2-call-rru">
+              <path d="M1060 176 H1100 L1140 300 H1180" stroke="#64748b" stroke-width="1" fill="none"/>
+              <text class="s2-lab" x="1192" y="294"></text>
+              <text class="s2-det" x="1192" y="326"></text>
+            </g>
+            <g id="s2-call-cab">
+              <path d="M1316 852 H1396" stroke="#64748b" stroke-width="1" fill="none"/>
+              <text class="s2-lab" x="1408" y="846"></text>
+              <text class="s2-det" x="1408" y="878"></text>
+            </g>
+            <g id="s2-call-run">
+              <path d="M924 596 H1396" stroke="#64748b" stroke-width="1" fill="none"/>
+              <text class="s2-lab" x="1408" y="590"></text>
+              <text class="s2-det" x="1408" y="622"></text>
+            </g>
+            <g id="s2-call-earth">
+              <path d="M1300 966 H1396" stroke="#64748b" stroke-width="1" fill="none"/>
+              <text class="s2-lab" x="1408" y="960"></text>
+              <text class="s2-det" x="1408" y="992"></text>
+            </g>
+            <g id="s2-call-h">
+              <path d="M716 214 V946" stroke="#cbd5e1" stroke-width="0.75" fill="none"/>
+              <path d="M702 214 H730 M702 946 H730" stroke="#64748b" stroke-width="1"/>
+              <text class="s2-det" x="690" y="586" text-anchor="end"></text>
+            </g>
+           </g>
+          </g>
+
+          <!-- fixed heading + the "two things" panel (outside the camera group) -->
+          <text id="s2-heading" class="s2-h" x="80" y="76"></text>
+          <g id="s2-two">
+            <rect x="80" y="120" width="420" height="240" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+            <text id="s2-two-h" class="s2-h" x="110" y="170"></text>
+            <g id="s2-two-i0">
+              <rect x="110" y="194" width="10" height="10" fill="#1d4ed8"/>
+              <text class="s2-det" x="134" y="204"></text>
+            </g>
+            <g id="s2-two-i1">
+              <rect x="110" y="240" width="10" height="10" fill="#d92626"/>
+              <text class="s2-det" x="134" y="250"></text>
+            </g>
+            <text id="s2-two-neg" class="s2-cap" x="110" y="322" fill="#c2410c"></text>
+          </g>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE, S = "s2", d = C.s2;
+          const $ = function (sel) { return document.querySelector(sel); };
+          const txt = function (sel, i, v) { $(sel).querySelectorAll("text")[i].textContent = v; };
+
+          // ---- copy in, from the data file -----------------------------
+          $("#s2-heading").textContent = d.heading;
+          txt("#s2-call-ant", 0, d.labels.antenna.name);
+          txt("#s2-call-ant", 1, d.labels.antenna.detail);
+          txt("#s2-call-rru", 0, d.labels.rru.name);
+          txt("#s2-call-rru", 1, d.labels.rru.detail);
+          txt("#s2-call-cab", 0, d.labels.cabinet.name);
+          txt("#s2-call-cab", 1, d.labels.cabinet.detail);
+          txt("#s2-call-run", 0, d.labels.ladder.name);
+          txt("#s2-call-run", 1, d.labels.ladder.detail);
+          $("#s2-call-h").querySelector("text").textContent = d.labels.height.detail;
+          txt("#s2-call-earth", 0, d.labels.earth.name);
+          txt("#s2-call-earth", 1, d.labels.earth.detail);
+          $("#s2-two-h").textContent = d.twoThings.heading;
+          txt("#s2-two-i0", 0, d.twoThings.items[0]);
+          txt("#s2-two-i1", 0, d.twoThings.items[1]);
+          $("#s2-two-neg").textContent = d.twoThings.negative;
+
+          // ---- draw-on setup for the two runs --------------------------
+          ["#s2-fibre", "#s2-dc-pos", "#s2-dc-neg"].forEach(function (sel) {
+            const el = $(sel), len = el.getTotalLength();
+            el.setAttribute("stroke-dasharray", len);
+            el.style.strokeDashoffset = len;
+            el.dataset.len = len;
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          // ---- camera: slow wide → mid push across the whole scene -----
+          // scale about the tower centre so the tower stays put as it grows
+          tl.fromTo("#s2-cam",
+            { transformOrigin: "880px 560px", scale: 1, x: 0, y: 0 },
+            { scale: 1.10, x: -18, y: -14, duration: C.scenes.s2.dur, ease: "none" }, 0);
+
+          // ---- 2.1 site establishes --------------------------------------
+          const t21 = C.at("2.1", S);
+          tl.fromTo("#s2-heading", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, t21);
+          tl.fromTo("#s2-site", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, t21);
+          tl.fromTo("#s2-ant-group", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, t21 + 0.35);
+          tl.fromTo("#s2-cab", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, t21 + 0.6);
+          tl.fromTo("#s2-ladder", { opacity: 0 }, { opacity: 1, duration: 0.6 }, t21 + 0.8);
+          tl.fromTo("#s2-call-h", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t21 + 1.1);
+          tl.fromTo("#s2-earth", { opacity: 0 }, { opacity: 1, duration: 0.5 }, t21 + 1.3);
+          tl.fromTo("#s2-call-earth", { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.5 }, t21 + 1.4);
+
+          // ---- 2.2 top: antennas + sector rose ---------------------------
+          const t22 = C.at("2.2", S);
+          ["a", "b", "c"].forEach(function (k, i) {
+            tl.to("#s2-ant-" + k + " rect", { stroke: C.palette.accent, duration: 0.3 }, t22 + i * 0.22);
+            tl.to("#s2-ant-" + k + " rect", { stroke: C.palette.ink, duration: 0.4 }, t22 + 2.6);
+          });
+          tl.fromTo("#s2-rose", { opacity: 0, scale: 0.9, transformOrigin: "1300px 430px" },
+            { opacity: 1, scale: 1, duration: 0.55, ease: "power3.out" }, t22 + 0.5);
+          tl.fromTo("#s2-call-ant", { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, t22 + 0.9);
+
+          // ---- 2.3 RRUs --------------------------------------------------
+          const t23 = C.at("2.3", S);
+          tl.fromTo("#s2-rru-group", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, t23);
+          ["a", "b", "c"].forEach(function (k, i) {
+            tl.to("#s2-rru-" + k + " rect", { stroke: C.palette.accent, duration: 0.25 }, t23 + 0.2 + i * 0.2);
+            tl.to("#s2-rru-" + k + " rect", { stroke: C.palette.ink, duration: 0.4 }, t23 + 3.0);
+          });
+          tl.fromTo("#s2-call-rru", { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, t23 + 0.6);
+
+          // ---- 2.4 base cabinet -----------------------------------------
+          const t24 = C.at("2.4", S);
+          tl.to("#s2-cab rect", { stroke: C.palette.accent, duration: 0.3 }, t24);
+          tl.to("#s2-cab rect", { stroke: C.palette.ink, duration: 0.4 }, t24 + 3.4);
+          tl.fromTo("#s2-call-cab", { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, t24 + 0.4);
+
+          // ---- 2.5 the two runs draw down the tower ----------------------
+          const t25 = C.at("2.5", S);
+          tl.to("#s2-fibre", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, t25);
+          tl.to("#s2-dc-pos", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, t25 + 0.45);
+          tl.to("#s2-dc-neg", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, t25 + 0.6);
+          tl.fromTo("#s2-call-run", { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, t25 + 1.3);
+          tl.fromTo("#s2-two", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, t25 + 1.8);
+          tl.fromTo("#s2-two-neg", { opacity: 0 }, { opacity: 1, duration: 0.45 }, t25 + 3.0);
+
+          window.__timelines["s2-site-overview"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

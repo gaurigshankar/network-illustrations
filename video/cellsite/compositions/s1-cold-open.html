@@ -1,0 +1,128 @@
+<!doctype html>
+<!--
+  SCENE 1 — COLD OPEN            absolute 0:00.00 → 0:17.61   (local 0 → 17.61)
+
+  Beats (cue ids from content/content.js):
+    1.1  "Before you climb anything…"   kicker rule + eyebrow draw in
+    1.2  "By the end of this…"          title and subtitle animate in
+    1.3  "Top to bottom…"               meta chips stagger; domain hairline draws
+  The presenter occupies the reserved full-frame slot on the left (owned by the
+  master timeline, which shrinks it to the corner cutout at the end of cue 1.3).
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          font-family: Inter, sans-serif;
+        }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        .panel { position: absolute; left: 840px; top: 232px; width: 980px; }
+        .kicker-row { display: flex; align-items: center; gap: 16px; margin-bottom: 30px; }
+        .kicker-rule { height: 3px; width: 84px; background: #1d4ed8; transform-origin: 0 50%; }
+        .kicker {
+          font-size: 25px; letter-spacing: 0.17em; font-weight: 700; color: #475569;
+        }
+        .title {
+          font-size: 62px; line-height: 1.1; font-weight: 700; color: #0f172a;
+          letter-spacing: -0.01em; max-width: 900px;
+        }
+        .subtitle {
+          font-size: 34px; line-height: 1.25; color: #ea580c; font-weight: 700;
+          margin-top: 14px; max-width: 900px;
+        }
+        .meta { display: flex; gap: 12px; margin-top: 44px; flex-wrap: wrap; max-width: 900px; }
+        .chip {
+          font-size: 25px; color: #475569; font-weight: 700;
+          border: 1.5px solid #cbd5e1; border-radius: 999px; padding: 7px 18px;
+          background: #ffffff;
+        }
+        /* digital → analogue hairline: the palette contract, stated once up front */
+        .hairline { position: absolute; left: 840px; top: 792px; width: 900px; height: 44px; }
+        .hairline .seg { position: absolute; top: 20px; height: 3px; transform-origin: 0 50%; }
+        .hairline .seg-d { left: 0; width: 430px; background: #1d4ed8; }
+        .hairline .seg-a { left: 470px; width: 430px; background: #ea580c; }
+        .hairline .tick {
+          position: absolute; left: 430px; top: 8px; width: 40px; height: 27px;
+          border-left: 1.5px solid #64748b; border-right: 1.5px solid #64748b;
+        }
+        .hairline .cap {
+          position: absolute; top: 30px; font-size: 25px; font-weight: 700; letter-spacing: 0.08em;
+        }
+        .hairline .cap-d { left: 0; color: #1d4ed8; }
+        .hairline .cap-a { left: 470px; color: #ea580c; }
+      </style>
+
+      <div id="root" data-composition-id="s1-cold-open" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <div class="panel">
+          <div class="kicker-row">
+            <div class="kicker-rule" id="s1-rule"></div>
+            <div class="kicker" id="s1-kicker"></div>
+          </div>
+          <div class="title" id="s1-title"></div>
+          <div class="subtitle" id="s1-subtitle"></div>
+          <div class="meta" id="s1-meta"></div>
+        </div>
+        <div class="hairline" id="s1-hair">
+          <div class="seg seg-d" id="s1-seg-d"></div>
+          <div class="tick" id="s1-tick"></div>
+          <div class="seg seg-a" id="s1-seg-a"></div>
+          <div class="cap cap-d" id="s1-cap-d">DIGITAL</div>
+          <div class="cap cap-a" id="s1-cap-a">ANALOGUE</div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE;
+          const S = "s1";
+          const d = C.s1;
+
+          document.getElementById("s1-kicker").textContent = d.kicker;
+          document.getElementById("s1-title").textContent = d.title;
+          document.getElementById("s1-subtitle").textContent = d.subtitle;
+          const meta = document.getElementById("s1-meta");
+          d.meta.forEach(function (m, i) {
+            const c = document.createElement("div");
+            c.className = "chip";
+            c.id = "s1-chip-" + i;
+            c.textContent = m;
+            meta.appendChild(c);
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          // 1.1 — eyebrow
+          const t11 = C.at("1.1", S);
+          tl.fromTo("#s1-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: "power3.out" }, t11);
+          tl.fromTo("#s1-kicker", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, t11 + 0.15);
+
+          // 1.2 — title card
+          const t12 = C.at("1.2", S);
+          tl.fromTo("#s1-title", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t12);
+          tl.fromTo("#s1-subtitle", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, t12 + 0.28);
+
+          // 1.3 — meta chips + the digital/analogue hairline
+          const t13 = C.at("1.3", S);
+          d.meta.forEach(function (_, i) {
+            tl.fromTo("#s1-chip-" + i, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, t13 + i * 0.12);
+          });
+          tl.fromTo("#s1-seg-d", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power2.out" }, t13 + 0.25);
+          tl.fromTo("#s1-seg-a", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power2.out" }, t13 + 0.55);
+          tl.fromTo("#s1-tick", { opacity: 0 }, { opacity: 1, duration: 0.3 }, t13 + 0.8);
+          tl.fromTo("#s1-cap-d", { opacity: 0 }, { opacity: 1, duration: 0.35 }, t13 + 0.5);
+          tl.fromTo("#s1-cap-a", { opacity: 0 }, { opacity: 1, duration: 0.35 }, t13 + 0.8);
+
+          window.__timelines["s1-cold-open"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>
