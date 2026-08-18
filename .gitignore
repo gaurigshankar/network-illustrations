@@ -1,0 +1,10 @@
+# Vendored HyperFrames skill payloads — reinstall with:
+#   npx skills add heygen-com/hyperframes --full-depth
+# skills-lock.json is committed so the install is reproducible.
+.agents/
+.claude/
+
+# Node + render outputs
+node_modules/
+renders/
+snapshots/
