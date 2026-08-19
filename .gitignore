@@ -1,0 +1,18 @@
+# Vendored HyperFrames skill payloads — reinstall with:
+#   npx skills add heygen-com/hyperframes --full-depth
+# skills-lock.json is committed so the install is reproducible.
+.agents/
+.claude/
+
+# Node + render outputs
+node_modules/
+renders/
+snapshots/
+video/cellsite/snapshots/
+
+# Render outputs are large binaries; the MP4 is the deliverable and is tracked.
+video/cellsite/renders/
+
+# HyperFrames per-render frame scratch directories
+video/cellsite/work-*/
+video/cellsite/.debug/

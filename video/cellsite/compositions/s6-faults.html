@@ -1,0 +1,201 @@
+<!doctype html>
+<!--
+  SCENE 6 — WHERE IT BREAKS      absolute 4:42.10 → 5:11.44   (local 0 → 29.34)
+
+  The signal chain stays on screen, desaturated, and each symptom pulses the
+  stages that could cause it. This is the diagnostic payoff that ties scenes
+  3–5 together.
+
+  Beats (cue ids from content/content.js):
+    6.1  chain redraws desaturated; the four symptom chips set
+    6.2  NO SERVICE         } for each: pulse the suspect stages (red outline
+    6.3  SLOW THROUGHPUT    } glow, never a fill swap), name the likely cause,
+    6.4  ONE SECTOR DOWN    } and name the first on-site check
+    6.5  HIGH UPLINK NOISE  }
+
+  The source diagram's fault-localisation picker was a click-driven layer;
+  here it is a fixed sequence, one symptom per narration line.
+  Keep-out: the avatar corner cutout occupies x 40–462, y 473–1004.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root { position: absolute; inset: 0; font-family: Inter, sans-serif; }
+        .ground { position: absolute; inset: 0; background: #f6f8fa; }
+        #s6-svg { position: absolute; left: 0; top: 0; }
+        .s6-h { font-size: 25px; font-weight: 700; letter-spacing: 0.15em; fill: #475569; }
+        .s6-lab { font-size: 25px; font-weight: 700; fill: #0f172a; }
+        .s6-det { font-size: 25px; fill: #64748b; }
+        .s6-cap { font-size: 34px; font-weight: 700; fill: #0f172a; }
+        .s6-node { font-size: 25px; fill: #64748b; }
+        .s6-big { font-size: 62px; font-weight: 700; fill: #dc2626; }
+      </style>
+
+      <div id="root" data-composition-id="s6-faults" data-width="1920" data-height="1080">
+        <div class="ground"></div>
+        <svg id="s6-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+          <text id="s6-heading" class="s6-h" x="80" y="76"></text>
+          <text id="s6-sub" class="s6-det" x="80" y="120"></text>
+
+          <!-- the chain, held on screen and desaturated -->
+          <g id="s6-chain"></g>
+
+          <!-- symptom progress chips -->
+          <g id="s6-chips"></g>
+
+          <!-- one symptom card at a time -->
+          <g id="s6-cards"></g>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          const C = window.CELLSITE, S = "s6", d = C.s6, P = C.palette;
+          const NS = "http://www.w3.org/2000/svg";
+          const $ = function (s) { return document.querySelector(s); };
+          const mk = function (tag, a) {
+            const e = document.createElementNS(NS, tag);
+            Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });
+            return e;
+          };
+          const ruler = mk("text", { x: -9999, y: -9999 });
+          $("#s6-svg").appendChild(ruler);
+          const measure = function (str, cls) {
+            ruler.setAttribute("class", cls); ruler.textContent = str;
+            return ruler.getComputedTextLength();
+          };
+          const wrap = function (text, maxW, cls) {
+            const w = text.split(" "), out = []; let cur = "";
+            w.forEach(function (x) {
+              const cand = cur ? cur + " " + x : x;
+              if (measure(cand, cls) > maxW && cur) { out.push(cur); cur = x; } else { cur = cand; }
+            });
+            if (cur) out.push(cur);
+            return out;
+          };
+
+          $("#s6-heading").textContent = d.heading;
+          $("#s6-sub").textContent = d.sub;
+
+          // ---- desaturated chain, same geometry as scene 5 --------------
+          const W = { stage: 150, xform: 140, transport: 120 }, GAP = 4, X0 = 44;
+          const Y = 300, H = 88;
+          const chainG = $("#s6-chain");
+          let x = X0;
+          const pos = {};
+          C.s5.chain.forEach(function (n) {
+            const w = W[n.kind === "stage" ? "stage" : n.kind === "xform" ? "xform" : "transport"];
+            const cx = x + w / 2;
+            pos[n.id] = { x: x, w: w, cx: cx };
+            const g = mk("g", { id: "s6-n-" + n.id });
+            g.appendChild(mk("rect", {
+              x: x, y: Y, width: w, height: H, rx: 6, fill: "#ffffff",
+              stroke: P.metal, "stroke-width": 1.5,
+              "stroke-dasharray": n.kind === "transport" ? "7 5" : "0"
+            }));
+            wrap(n.hw, w - 16, "s6-node").forEach(function (ln, i) {
+              const t = mk("text", { x: cx, y: Y + 34 + i * 24, class: "s6-node", "text-anchor": "middle" });
+              t.textContent = ln;
+              g.appendChild(t);
+            });
+            // suspect outline glow, per node — outline only
+            g.appendChild(mk("rect", {
+              x: x - 5, y: Y - 5, width: w + 10, height: H + 10, rx: 8,
+              fill: "none", stroke: P.fault, "stroke-width": 1.5, opacity: 0,
+              id: "s6-glow-" + n.id
+            }));
+            chainG.appendChild(g);
+            x += w + GAP;
+          });
+
+          // ---- symptom chips -------------------------------------------
+          const chips = $("#s6-chips");
+          d.symptoms.forEach(function (sy, i) {
+            const bx = 140 + i * 432;
+            const g = mk("g", { id: "s6-chip-" + sy.id });
+            g.appendChild(mk("rect", { x: bx, y: 436, width: 404, height: 48, rx: 24, fill: "#ffffff", stroke: P.rule, "stroke-width": 1.5, id: "s6-chipbox-" + sy.id }));
+            const t = mk("text", { x: bx + 202, y: 467, class: "s6-lab", "text-anchor": "middle", fill: P.inkFaint, id: "s6-chiptext-" + sy.id });
+            t.textContent = sy.name;
+            g.appendChild(t);
+            chips.appendChild(g);
+          });
+
+          // ---- one card per symptom ------------------------------------
+          const cards = $("#s6-cards");
+          d.symptoms.forEach(function (sy) {
+            const g = mk("g", { id: "s6-card-" + sy.id, opacity: 0 });
+            g.appendChild(mk("rect", { x: 140, y: 530, width: 1740, height: 300, rx: 10, fill: "#ffffff", stroke: P.fault, "stroke-width": 1.5 }));
+            const nm = mk("text", { x: 176, y: 606, class: "s6-big" });
+            nm.textContent = sy.name;
+            g.appendChild(nm);
+
+            const cl = mk("text", { x: 176, y: 664, class: "s6-h" });
+            cl.textContent = "LIKELY CAUSE";
+            g.appendChild(cl);
+            wrap(sy.cause, 1660, "s6-cap").forEach(function (ln, i) {
+              const t = mk("text", { x: 176, y: 704 + i * 40, class: "s6-cap" });
+              t.textContent = ln;
+              g.appendChild(t);
+            });
+
+            const ck = mk("text", { x: 176, y: 762, class: "s6-h", fill: P.accent });
+            ck.textContent = "FIRST ON-SITE CHECK";
+            g.appendChild(ck);
+            wrap(sy.check, 1660, "s6-det").forEach(function (ln, i) {
+              const t = mk("text", { x: 176, y: 800 + i * 30, class: "s6-det" });
+              t.textContent = ln;
+              g.appendChild(t);
+            });
+            cards.appendChild(g);
+          });
+
+          window.__timelines = window.__timelines || {};
+          const tl = gsap.timeline({ paused: true });
+
+          // ---- 6.1 chain sets, desaturated ------------------------------
+          const t61 = C.at("6.1", S);
+          tl.fromTo("#s6-heading", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.45 }, t61);
+          tl.fromTo("#s6-sub", { opacity: 0 }, { opacity: 1, duration: 0.45 }, t61 + 0.15);
+          tl.fromTo("#s6-chain", { opacity: 0 }, { opacity: 1, duration: 0.6 }, t61);
+          tl.fromTo("#s6-chips", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5 }, t61 + 0.3);
+
+          // ---- 6.2 – 6.5 one symptom per line ---------------------------
+          d.symptoms.forEach(function (sy, i) {
+            const t = C.at(sy.cue, S);
+            const end = (i + 1 < d.symptoms.length) ? C.at(d.symptoms[i + 1].cue, S) - 0.25 : t + 5.0;
+
+            // chip lights, previous chips return to rest
+            d.symptoms.forEach(function (o) {
+              tl.to("#s6-chipbox-" + o.id, { stroke: o.id === sy.id ? P.fault : P.rule, duration: 0.25 }, t);
+              tl.to("#s6-chiptext-" + o.id, { fill: o.id === sy.id ? P.fault : P.inkFaint, duration: 0.25 }, t);
+            });
+
+            // card swap: clear the previous card fully before the next fades in
+            d.symptoms.forEach(function (o) {
+              if (o.id !== sy.id) tl.to("#s6-card-" + o.id, { opacity: 0, duration: 0.2 }, Math.max(0, t - 0.3));
+            });
+            tl.to("#s6-card-" + sy.id, { opacity: 1, duration: 0.3 }, t);
+
+            // pulse the suspect stages — finite repeat count, outline only
+            C.s5.chain.forEach(function (n) {
+              const suspect = sy.suspects.indexOf(n.id) !== -1;
+              tl.to("#s6-glow-" + n.id, { opacity: suspect ? 1 : 0, duration: 0.25 }, t);
+            });
+            const cycles = Math.max(0, Math.floor((end - t) / 1.1) - 1);
+            sy.suspects.forEach(function (id) {
+              tl.to("#s6-glow-" + id, {
+                opacity: 0.3, duration: 0.55, repeat: cycles, yoyo: true, ease: "sine.inOut"
+              }, t + 0.3);
+            });
+          });
+
+          window.__timelines["s6-faults"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

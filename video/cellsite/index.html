@@ -1,0 +1,289 @@
+<!doctype html>
+<!--
+  cellsite-explainer — MASTER TIMELINE
+  "How a Cell Site Works: From IP Packet to Handset"  ·  1920×1080 @ 30fps
+
+  Assembles seven scene sub-compositions and carries the three persistent
+  overlays that must survive every scene change:
+    track 0  stage ground   full-bleed background (never on the root itself)
+    track 1  scene slots    s1…s7, back to back
+    track 2  locator        simplified tower silhouette, corner, subject-lit
+    track 3  presenter      full-frame slot, cold open and recap only
+    track 4  captions       burned-in, bottom-centre, max two lines
+
+  All text, timing, figures and fault lines come from content/content.js.
+  Nothing in this file is hard-coded copy.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>How a Cell Site Works — From IP Packet to Handset</title>
+    <script src="assets/gsap.min.js"></script>
+    <script src="content/content.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #f6f8fa; }
+      body { font-family: Inter, sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+      #stage-ground { background: #f6f8fa; }
+
+      /* ---- locator graphic ------------------------------------------- */
+      #locator {
+        position: absolute; right: 44px; top: 40px;
+        width: 250px; height: 214px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1.5px solid #cbd5e1; border-radius: 10px;
+        padding: 12px 14px;
+      }
+      #locator .loc-title {
+        font-size: 15px; letter-spacing: 0.13em; color: #64748b;
+        font-weight: 700; margin-bottom: 8px;
+      }
+      #locator .loc-body { position: relative; height: 158px; }
+      #locator svg { position: absolute; left: 0; top: 0; }
+      #locator .loc-name {
+        position: absolute; left: 92px; font-size: 14px; color: #64748b;
+        font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+      }
+
+      /* ---- presenter slots (option B) --------------------------------- */
+      /* The presenter appears full-frame in the cold open and the recap only.
+         Scenes 2-6 have no presenter, so the diagrams own the whole frame.
+         Each slot is staged at the geometry the talking head will occupy;
+         swap the placeholder for <video src="assets/presenter-*.mp4" muted>
+         and nothing else needs to change. */
+      .avatar-frame {
+        position: absolute; left: 140px; top: 140px;
+        width: 620px; height: 780px;
+        border: 1.5px dashed #64748b; border-radius: 14px;
+        background: rgba(226, 232, 240, 0.5);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 18px;
+        overflow: hidden;
+      }
+      .avatar-frame .av-mark {
+        width: 132px; height: 132px; border-radius: 50%;
+        border: 1.5px solid #64748b; position: relative;
+      }
+      .avatar-frame .av-mark::before {
+        content: ""; position: absolute; left: 50%; top: 30px;
+        width: 44px; height: 44px; margin-left: -22px; border-radius: 50%;
+        border: 1.5px solid #64748b;
+      }
+      .avatar-frame .av-mark::after {
+        content: ""; position: absolute; left: 50%; top: 82px;
+        width: 76px; height: 40px; margin-left: -38px;
+        border: 1.5px solid #64748b; border-bottom: none;
+        border-radius: 38px 38px 0 0;
+      }
+      .avatar-frame .av-role { font-size: 25px; color: #475569; font-weight: 700; }
+      .avatar-frame .av-note {
+        font-size: 25px; color: #64748b; max-width: 440px;
+        text-align: center; line-height: 1.35;
+      }
+
+      /* ---- captions --------------------------------------------------- */
+      #captions {
+        position: absolute; left: 490px; top: 916px; width: 940px;
+        display: flex; flex-direction: column; align-items: center;
+      }
+      #captions .cap {
+        position: absolute; left: 0; top: 0; width: 940px;
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+      }
+      #captions .cap-line {
+        display: inline-block;
+        background: #0f172a; color: #ffffff;
+        font-size: 34px; line-height: 1.28; font-weight: 700;
+        padding: 6px 18px; border-radius: 5px;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="339.92"
+    >
+      <!-- track 0 — opaque stage ground (must not live on the root itself) -->
+      <div id="stage-ground" class="clip" data-start="0" data-duration="339.92" data-track-index="0"
+           style="position:absolute; inset:0;"></div>
+
+      <!-- track 1 — scenes -->
+      <div id="scene-s1-cold-open" class="clip" data-composition-id="s1-cold-open"     data-composition-src="compositions/s1-cold-open.html"
+           data-start="0"      data-duration="17.61" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s2-site-overview" class="clip" data-composition-id="s2-site-overview" data-composition-src="compositions/s2-site-overview.html"
+           data-start="17.61"  data-duration="41.13" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s3-rru" class="clip" data-composition-id="s3-rru"           data-composition-src="compositions/s3-rru.html"
+           data-start="58.74"  data-duration="61.80" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s4-cabinet" class="clip" data-composition-id="s4-cabinet"       data-composition-src="compositions/s4-cabinet.html"
+           data-start="120.54" data-duration="77.87" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s5-signal-chain" class="clip" data-composition-id="s5-signal-chain"  data-composition-src="compositions/s5-signal-chain.html"
+           data-start="198.41" data-duration="83.69" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s6-faults" class="clip" data-composition-id="s6-faults"        data-composition-src="compositions/s6-faults.html"
+           data-start="282.10" data-duration="29.34" data-track-index="1" data-width="1920" data-height="1080"></div>
+      <div id="scene-s7-safety" class="clip" data-composition-id="s7-safety"        data-composition-src="compositions/s7-safety.html"
+           data-start="311.44" data-duration="28.48" data-track-index="1" data-width="1920" data-height="1080"></div>
+
+      <!-- track 2 — locator graphic, established in scene 2 and held after -->
+      <div id="locator-clip" class="clip" data-start="17.61" data-duration="322.31" data-track-index="2"
+           style="position:absolute; inset:0;">
+        <div id="locator">
+          <div class="loc-title"></div>
+          <div class="loc-body"></div>
+        </div>
+      </div>
+
+      <!-- track 3 — presenter slots: cold open and recap only -->
+      <div id="avatar-clip-open" class="clip" data-start="0" data-duration="17.61" data-track-index="3"
+           style="position:absolute; inset:0;">
+        <div id="avatar-frame-open" class="avatar-frame">
+          <div class="av-mark"></div>
+          <div class="av-role"></div>
+          <div class="av-note"></div>
+        </div>
+      </div>
+      <div id="avatar-clip-close" class="clip" data-start="311.44" data-duration="28.48" data-track-index="3"
+           style="position:absolute; inset:0;">
+        <div id="avatar-frame-close" class="avatar-frame">
+          <div class="av-mark"></div>
+          <div class="av-role"></div>
+          <div class="av-note"></div>
+        </div>
+      </div>
+
+      <!-- track 4 — burned-in captions, always on top -->
+      <div id="captions-clip" class="clip" data-start="0" data-duration="339.92" data-track-index="4"
+           style="position:absolute; inset:0;">
+        <div id="captions"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const C = window.CELLSITE;
+        const SVGNS = "http://www.w3.org/2000/svg";
+
+        /* ---------------- build the locator graphic (from data) --------- */
+        // Simplified tower silhouette: four stacked subjects, one lit at a time.
+        const loc = document.getElementById("locator");
+        loc.querySelector(".loc-title").textContent = C.locator.title;
+        const locBody = loc.querySelector(".loc-body");
+        const svg = document.createElementNS(SVGNS, "svg");
+        svg.setAttribute("width", "80");
+        svg.setAttribute("height", "158");
+        svg.setAttribute("viewBox", "0 0 80 158");
+        // tower legs
+        const legs = document.createElementNS(SVGNS, "path");
+        legs.setAttribute("d", "M30 12 L18 128 M50 12 L62 128 M22 50 H58 M20 90 H60");
+        legs.setAttribute("stroke", C.palette.inkFaint);
+        legs.setAttribute("stroke-width", C.stroke.structural);
+        legs.setAttribute("fill", "none");
+        svg.appendChild(legs);
+        // ground line
+        const ground = document.createElementNS(SVGNS, "line");
+        ground.setAttribute("x1", "6"); ground.setAttribute("y1", "146");
+        ground.setAttribute("x2", "74"); ground.setAttribute("y2", "146");
+        ground.setAttribute("stroke", C.palette.inkFaint);
+        ground.setAttribute("stroke-width", C.stroke.structural);
+        svg.appendChild(ground);
+
+        // one marker per subject, at its height on the silhouette
+        const MARK_Y = { tower: 14, run: 74, cabinet: 130, air: 44 };
+        const NAME_Y = { tower: 4, run: 64, cabinet: 120, air: 34 };
+        C.locator.subjects.forEach(function (s) {
+          const g = document.createElementNS(SVGNS, "g");
+          g.setAttribute("id", "loc-mark-" + s.id);
+          const r = document.createElementNS(SVGNS, "rect");
+          const isAir = s.id === "air";
+          r.setAttribute("x", isAir ? "56" : "24");
+          r.setAttribute("y", String(MARK_Y[s.id]));
+          r.setAttribute("width", isAir ? "20" : "32");
+          r.setAttribute("height", "16");
+          r.setAttribute("rx", "3");
+          r.setAttribute("fill", C.palette.metalLight);
+          r.setAttribute("stroke", C.palette.inkFaint);
+          r.setAttribute("stroke-width", C.stroke.structural);
+          g.appendChild(r);
+          svg.appendChild(g);
+
+          const nm = document.createElement("div");
+          nm.className = "loc-name";
+          nm.id = "loc-name-" + s.id;
+          nm.style.top = NAME_Y[s.id] + "px";
+          nm.textContent = s.label;
+          locBody.appendChild(nm);
+        });
+        locBody.appendChild(svg);
+
+        /* ---------------- presenter slots ------------------------------ */
+        Array.prototype.forEach.call(document.querySelectorAll(".avatar-frame"), function (av) {
+          av.querySelector(".av-role").textContent = C.avatar.role;
+          av.querySelector(".av-note").textContent = C.avatar.note;
+        });
+
+        /* ---------------- caption cards -------------------------------- */
+        const capHost = document.getElementById("captions");
+        C.captions.forEach(function (card, i) {
+          const d = document.createElement("div");
+          d.className = "cap";
+          d.id = "cap-" + i;
+          card.lines.forEach(function (line) {
+            const el = document.createElement("div");
+            el.className = "cap-line";
+            el.textContent = line;
+            d.appendChild(el);
+          });
+          capHost.appendChild(d);
+        });
+
+        /* ---------------- master timeline ------------------------------ */
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+
+        // captions: hard on/off at their own boundaries (non-clip elements)
+        gsap.set(".cap", { autoAlpha: 0 });
+        C.captions.forEach(function (card, i) {
+          tl.set("#cap-" + i, { autoAlpha: 1 }, card.start);
+          tl.set("#cap-" + i, { autoAlpha: 0 }, card.end);
+        });
+
+        // The presenter no longer travels between a full frame and a corner
+        // cutout: it simply appears in the two clips that carry it, so the
+        // framework owns its visibility and no tween is needed.
+
+        // locator: fade the whole card in as scene 2 establishes it
+        gsap.set("#locator", { autoAlpha: 0 });
+        tl.to("#locator", { autoAlpha: 1, duration: 0.6, ease: "power2.out" }, C.cue("2.6").start);
+
+        // locator: light the current subject, dim the rest
+        const dim = { fill: C.palette.metalLight, stroke: C.palette.inkFaint };
+        C.locator.subjects.forEach(function (s) {
+          gsap.set("#loc-mark-" + s.id + " rect", { fill: dim.fill, stroke: dim.stroke });
+          gsap.set("#loc-name-" + s.id, { color: C.palette.inkFaint });
+        });
+        C.locator.lit.forEach(function (step) {
+          const t = C.cue(step.cue).start;
+          C.locator.subjects.forEach(function (s) {
+            const on = step.subject === "all" || step.subject === s.id;
+            tl.to("#loc-mark-" + s.id + " rect",
+              { fill: on ? C.palette.accent : dim.fill,
+                stroke: on ? C.palette.accent : dim.stroke,
+                duration: 0.35, ease: "power2.out" }, t);
+            tl.to("#loc-name-" + s.id,
+              { color: on ? C.palette.accent : C.palette.inkFaint,
+                duration: 0.35, ease: "power2.out" }, t);
+          });
+        });
+
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>

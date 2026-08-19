@@ -1,0 +1,298 @@
+1
+00:00:00,500 --> 00:00:05,470
+Before you climb anything, you need
+to know what you're looking at.
+
+2
+00:00:05,770 --> 00:00:12,390
+By the end of this you can walk
+onto a live site and name every box.
+
+3
+00:00:12,690 --> 00:00:16,410
+Top to bottom, then one packet end to end.
+
+4
+00:00:17,610 --> 00:00:23,820
+This is a macro site — the three-sector
+tower you'll be sent to most weeks.
+
+5
+00:00:24,420 --> 00:00:29,800
+At the top, panel antennas in three
+groups, 120 degrees apart. Three sectors.
+
+6
+00:00:30,400 --> 00:00:36,190
+Behind each one, a Remote Radio Unit
+— an RRU. That's where radio happens.
+
+7
+00:00:36,790 --> 00:00:42,170
+At the base, a cabinet: the Baseband
+Unit, the power system, the batteries.
+
+8
+00:00:42,770 --> 00:00:50,630
+Between them only two thin things run up the
+tower — fibre, and DC power. No fat RF feeders.
+
+9
+00:00:51,530 --> 00:00:57,740
+Keep this silhouette in the corner of
+your eye. I'll light up wherever we are.
+
+10
+00:00:58,740 --> 00:01:01,220
+Push in on the tower top.
+
+11
+00:01:02,020 --> 00:01:06,990
+Finned aluminium body — passively cooled.
+Those fins are the cooling system.
+
+12
+00:01:07,290 --> 00:01:12,670
+It clamps to a pipe mount, with a
+bracket that sets mechanical downtilt.
+
+13
+00:01:12,970 --> 00:01:17,930
+Out the top, a half-inch coax jumper,
+sealed in a weatherproof boot.
+
+14
+00:01:18,230 --> 00:01:21,540
+Underneath, two LC fibre connectors
+carrying digital samples.
+
+15
+00:01:21,840 --> 00:01:25,150
+Beside them, the minus
+forty-eight volt DC connector.
+
+16
+00:01:25,450 --> 00:01:30,420
+Then status LEDs, and an earth
+strap to the tower-top earth bar.
+
+17
+00:01:31,220 --> 00:01:36,180
+So why is the radio up here,
+and the baseband down there?
+
+18
+00:01:36,680 --> 00:01:42,060
+Coax throws away roughly five dB per
+hundred metres. Fibre loses almost nothing.
+
+19
+00:01:42,760 --> 00:01:47,310
+Run RF one metre. Send light and DC the long way.
+
+20
+00:01:48,310 --> 00:01:52,870
+Last thing — read the LEDs
+before you plan a climb.
+
+21
+00:01:53,570 --> 00:01:58,940
+RUN just went green to red. Check
+the fibre, then the DC breaker.
+
+22
+00:02:00,540 --> 00:02:03,440
+Back down the tower to the cabinet.
+
+23
+00:02:04,240 --> 00:02:11,280
+About two metres tall, rails marked in rack
+units — so nothing here is ambiguous in size.
+
+24
+00:02:11,880 --> 00:02:17,670
+Top shelf: the Baseband Unit. Boards, LEDs,
+one vacant slot with a blanking plate.
+
+25
+00:02:17,970 --> 00:02:24,620
+Below it the rectifier shelf — AC mains to minus
+forty-eight volts DC, one spare position, a
+
+26
+00:02:24,620 --> 00:02:25,420
+controller.
+
+27
+00:02:25,720 --> 00:02:29,860
+Then DC distribution: busbar, labelled
+breakers per load, low-voltage disconnect.
+
+28
+00:02:30,160 --> 00:02:36,780
+At the bottom, four twelve-volt VRLA batteries
+in series. Copper earth bar on the side wall.
+
+29
+00:02:37,480 --> 00:02:43,420
+The stacking isn't arbitrary — weight low, heat
+rises, electronics clear of battery outgassing,
+
+30
+00:02:43,420 --> 00:02:44,920
+service at chest height.
+
+31
+00:02:45,820 --> 00:02:49,130
+Now watch what happens when the mains drops.
+
+32
+00:02:50,230 --> 00:02:54,790
+Healthy: rectifiers hold the bus near
+fifty-four volts, float-charging the batteries.
+
+33
+00:02:55,590 --> 00:02:59,720
+AC fails. Rectifiers drop out.
+That's your Mains Failure alarm.
+
+34
+00:03:00,520 --> 00:03:05,490
+Batteries take the load instantly
+— they were already across the bus.
+
+35
+00:03:06,290 --> 00:03:10,430
+Bus voltage sags. The dry
+contact raises DC Low Voltage.
+
+36
+00:03:11,230 --> 00:03:16,610
+Near forty-three volts the low-voltage
+disconnect trips and sheds the load. Site down.
+
+37
+00:03:18,410 --> 00:03:24,610
+Now the signal itself. Two tracks: what
+it is on top, what it's inside underneath.
+
+38
+00:03:25,310 --> 00:03:29,040
+It starts as an IP packet from the core.
+
+39
+00:03:29,340 --> 00:03:34,620
+The Baseband Unit schedules and codes
+it, then turns it into IQ samples —
+
+40
+00:03:34,620 --> 00:03:36,790
+numbers describing a waveform.
+
+41
+00:03:37,090 --> 00:03:41,360
+Those samples ride the fibre as
+CPRI. Transport, not transformation —
+
+42
+00:03:41,360 --> 00:03:43,710
+nothing about the information changes.
+
+43
+00:03:44,310 --> 00:03:51,580
+Here's the moment that matters. In the RRU, a DAC
+and an upconverter turn numbers into an analogue
+
+44
+00:03:51,580 --> 00:03:52,170
+carrier.
+
+45
+00:03:52,770 --> 00:03:59,390
+Through the power amplifier, out the jumper,
+into the antenna — a beam in the air.
+
+46
+00:03:59,690 --> 00:04:04,660
+At the handset: antenna, low-noise amplifier,
+ADC, demodulate. Your packet is back.
+
+47
+00:04:05,660 --> 00:04:12,900
+Look at the spans: gigabits on fibre, gigahertz
+on the carrier, tens of watts leaving the radio —
+
+48
+00:04:12,900 --> 00:04:15,590
+about a picowatt reaching the phone.
+
+49
+00:04:17,890 --> 00:04:22,850
+Every figure here is a representative
+range for typical LTE macro equipment.
+
+50
+00:04:23,550 --> 00:04:31,000
+Uplink is not a mirror image. The handset
+transmits about a fifth of a watt, on a battery.
+
+51
+00:04:31,600 --> 00:04:36,000
+Its amplifier is weak, so
+uplink usually limits coverage —
+
+52
+00:04:36,000 --> 00:04:40,700
+the phone hears the site long
+before the site hears the phone.
+
+53
+00:04:42,100 --> 00:04:45,000
+Four symptoms you'll actually be sent for.
+
+54
+00:04:45,800 --> 00:04:52,010
+No service — check the S1 link and cell
+state before you touch anything RF.
+
+55
+00:04:52,710 --> 00:04:57,670
+Slow throughput — interference and modulation
+order, before you blame the backhaul.
+
+56
+00:04:58,370 --> 00:05:04,580
+One sector down — one RRU, its fibre,
+or its breaker. Check the breaker first.
+
+57
+00:05:05,280 --> 00:05:10,240
+High uplink noise — external interference,
+or a faulty jumper. Check VSWR.
+
+58
+00:05:11,440 --> 00:05:15,170
+Four things before you go near a live cabinet.
+
+59
+00:05:15,870 --> 00:05:21,250
+A spanner across battery terminals
+is a short with nothing in the way.
+
+60
+00:05:21,850 --> 00:05:25,570
+Opening a load breaker does
+not de-energise the busbar.
+
+61
+00:05:26,170 --> 00:05:29,900
+Nobody climbs without RF zone
+awareness and current certification.
+
+62
+00:05:30,500 --> 00:05:33,810
+And never lift a battery by its terminals.
+
+63
+00:05:34,610 --> 00:05:37,920
+Top to bottom. You can name it now.
