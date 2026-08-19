@@ -85,25 +85,25 @@
 
           <!-- detail strip: the active node's representative figures -->
           <g id="s5-detail" opacity="0">
-            <rect x="520" y="552" width="1360" height="52" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+            <rect x="140" y="552" width="1740" height="52" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
             <g id="s5-detail-set"></g>
           </g>
 
           <!-- transport note, said out loud on cue 5.4 -->
-          <text id="s5-transport-note" class="s5-cap" x="520" y="668" fill="#1d4ed8" opacity="0"></text>
-          <text id="s5-5g" class="s5-det" x="520" y="712" opacity="0"></text>
+          <text id="s5-transport-note" class="s5-cap" x="140" y="668" fill="#1d4ed8" opacity="0"></text>
+          <text id="s5-5g" class="s5-det" x="140" y="712" opacity="0"></text>
 
           <!-- ===== logarithmic scale strip (5.8) ===================== -->
           <g id="s5-scale" opacity="0">
-            <text id="s5-scale-h" class="s5-h" x="520" y="646"></text>
-            <line id="s5-scale-axis" x1="560" y1="800" x2="1840" y2="800" stroke="#64748b" stroke-width="1.5"/>
+            <text id="s5-scale-h" class="s5-h" x="140" y="646"></text>
+            <line id="s5-scale-axis" x1="200" y1="800" x2="1840" y2="800" stroke="#64748b" stroke-width="1.5"/>
             <g id="s5-scale-items"></g>
-            <text id="s5-scale-cap" class="s5-cap" x="520" y="688"></text>
+            <text id="s5-scale-cap" class="s5-cap" x="140" y="688"></text>
           </g>
 
           <!-- ===== uplink return row (5.10 – 5.11) =================== -->
           <g id="s5-uplink" opacity="0">
-            <text id="s5-ul-h" class="s5-h" x="520" y="646" fill="#c2410c"></text>
+            <text id="s5-ul-h" class="s5-h" x="140" y="646" fill="#c2410c"></text>
             <g id="s5-ul-steps"></g>
             <g id="s5-ul-asym">
               <text id="s5-ul-asym-h" class="s5-h" x="1500" y="700"></text>
@@ -115,11 +115,11 @@
               <text id="s5-ul-ul-v" class="s5-lab" x="1860" y="798" text-anchor="end" fill="#c2410c"></text>
               <g id="s5-ul-ratio"></g>
             </g>
-            <text id="s5-ul-lesson" class="s5-cap" x="520" y="870" fill="#c2410c"></text>
+            <text id="s5-ul-lesson" class="s5-cap" x="140" y="870" fill="#c2410c"></text>
           </g>
 
           <!-- accuracy caveat: representative ranges, never specifications -->
-          <text id="s5-caveat" class="s5-det" x="520" y="906" opacity="0"></text>
+          <text id="s5-caveat" class="s5-det" x="140" y="906" opacity="0"></text>
         </svg>
       </div>
 
@@ -260,14 +260,14 @@
           // ---- detail strip: one value line per node -------------------
           const dset = $("#s5-detail-set");
           d.chain.forEach(function (n) {
-            const t = mk("text", { x: 548, y: 586, class: "s5-det", id: "s5-v-" + n.id, opacity: 0 });
+            const t = mk("text", { x: 168, y: 586, class: "s5-det", id: "s5-v-" + n.id, opacity: 0 });
             t.textContent = (n.kind === "transport" ? n.hw : n.rep) + "  ·  " + n.val;
             dset.appendChild(t);
           });
 
           // ---- log scale strip ----------------------------------------
           const si = $("#s5-scale-items");
-          const EXP_MIN = -13, EXP_MAX = 11, AX0 = 560, AX1 = 1840;
+          const EXP_MIN = -13, EXP_MAX = 11, AX0 = 200, AX1 = 1840;
           const expX = function (e) { return AX0 + ((e - EXP_MIN) / (EXP_MAX - EXP_MIN)) * (AX1 - AX0); };
           for (let e = EXP_MIN + 1; e <= EXP_MAX; e += 3) {
             si.appendChild(mk("line", { x1: expX(e), y1: 794, x2: expX(e), y2: 806, stroke: P.rule, "stroke-width": 0.75 }));
@@ -290,7 +290,7 @@
           // ---- uplink steps: a distinct return row, not a mirror -------
           const us = $("#s5-ul-steps");
           d.uplink.steps.forEach(function (st, i) {
-            const bx = 520 + i * 190;
+            const bx = 140 + i * 236;
             const g = mk("g", { id: "s5-ul-" + st.id, opacity: 0 });
             g.appendChild(mk("path", {
               d: "M" + (bx + 168) + " 716 H" + (bx + 186),

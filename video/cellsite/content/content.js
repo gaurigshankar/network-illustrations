@@ -1077,12 +1077,18 @@ window.CELLSITE = (function () {
   // Option B: the presenter is not yet generated. The slot is staged at the
   // exact geometry the talking-head will occupy so it drops in unchanged.
   const avatar = {
-    note: 'Presenter slot — HeyGen Avatar IV/V talking head composites here.',
+    note: 'Presenter slot — drop the talking head in here.',
     role: 'Senior RAN architect',
-    // One element, transform-only: the corner state is the full state scaled
-    // about its top-left corner, so the "shrink to corner" is a single tween.
-    full:   { x: 140, y: 140, w: 620, h: 780 },              // Scenes 1 and 7
-    corner: { x: 40,  y: 473, w: 422, h: 531, scale: 0.6806 } // ~22% frame width, lower-left
+    // Option B staging: the presenter appears FULL FRAME in the cold open and
+    // the recap only. Scenes 2-6 carry no presenter, so the diagrams own the
+    // whole frame and there is no corner-cutout keep-out to design around.
+    full: { x: 140, y: 140, w: 620, h: 780 },
+    // What each clip needs. Generate two takes at these durations, drop them in
+    // as assets/presenter-open.mp4 and assets/presenter-close.mp4.
+    clips: [
+      { id: 'open',  file: 'assets/presenter-open.mp4',  start: 0,      duration: 17.61, cues: ['1.1', '1.2', '1.3'] },
+      { id: 'close', file: 'assets/presenter-close.mp4', start: 311.44, duration: 28.48, cues: ['7.1', '7.2', '7.3', '7.4', '7.5', '7.6'] }
+    ]
   };
 
   // --- Scene 1: cold open ----------------------------------------------

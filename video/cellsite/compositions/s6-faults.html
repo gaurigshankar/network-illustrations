@@ -115,10 +115,10 @@
           // ---- symptom chips -------------------------------------------
           const chips = $("#s6-chips");
           d.symptoms.forEach(function (sy, i) {
-            const bx = 520 + i * 344;
+            const bx = 140 + i * 432;
             const g = mk("g", { id: "s6-chip-" + sy.id });
-            g.appendChild(mk("rect", { x: bx, y: 436, width: 326, height: 48, rx: 24, fill: "#ffffff", stroke: P.rule, "stroke-width": 1.5, id: "s6-chipbox-" + sy.id }));
-            const t = mk("text", { x: bx + 163, y: 467, class: "s6-lab", "text-anchor": "middle", fill: P.inkFaint, id: "s6-chiptext-" + sy.id });
+            g.appendChild(mk("rect", { x: bx, y: 436, width: 404, height: 48, rx: 24, fill: "#ffffff", stroke: P.rule, "stroke-width": 1.5, id: "s6-chipbox-" + sy.id }));
+            const t = mk("text", { x: bx + 202, y: 467, class: "s6-lab", "text-anchor": "middle", fill: P.inkFaint, id: "s6-chiptext-" + sy.id });
             t.textContent = sy.name;
             g.appendChild(t);
             chips.appendChild(g);
@@ -128,25 +128,25 @@
           const cards = $("#s6-cards");
           d.symptoms.forEach(function (sy) {
             const g = mk("g", { id: "s6-card-" + sy.id, opacity: 0 });
-            g.appendChild(mk("rect", { x: 520, y: 530, width: 1360, height: 300, rx: 10, fill: "#ffffff", stroke: P.fault, "stroke-width": 1.5 }));
-            const nm = mk("text", { x: 556, y: 606, class: "s6-big" });
+            g.appendChild(mk("rect", { x: 140, y: 530, width: 1740, height: 300, rx: 10, fill: "#ffffff", stroke: P.fault, "stroke-width": 1.5 }));
+            const nm = mk("text", { x: 176, y: 606, class: "s6-big" });
             nm.textContent = sy.name;
             g.appendChild(nm);
 
-            const cl = mk("text", { x: 556, y: 664, class: "s6-h" });
+            const cl = mk("text", { x: 176, y: 664, class: "s6-h" });
             cl.textContent = "LIKELY CAUSE";
             g.appendChild(cl);
-            wrap(sy.cause, 1280, "s6-cap").forEach(function (ln, i) {
-              const t = mk("text", { x: 556, y: 704 + i * 40, class: "s6-cap" });
+            wrap(sy.cause, 1660, "s6-cap").forEach(function (ln, i) {
+              const t = mk("text", { x: 176, y: 704 + i * 40, class: "s6-cap" });
               t.textContent = ln;
               g.appendChild(t);
             });
 
-            const ck = mk("text", { x: 556, y: 762, class: "s6-h", fill: P.accent });
+            const ck = mk("text", { x: 176, y: 762, class: "s6-h", fill: P.accent });
             ck.textContent = "FIRST ON-SITE CHECK";
             g.appendChild(ck);
-            wrap(sy.check, 1280, "s6-det").forEach(function (ln, i) {
-              const t = mk("text", { x: 556, y: 800 + i * 30, class: "s6-det" });
+            wrap(sy.check, 1660, "s6-det").forEach(function (ln, i) {
+              const t = mk("text", { x: 176, y: 800 + i * 30, class: "s6-det" });
               t.textContent = ln;
               g.appendChild(t);
             });

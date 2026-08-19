@@ -8,7 +8,7 @@
     track 0  stage ground   full-bleed background (never on the root itself)
     track 1  scene slots    s1…s7, back to back
     track 2  locator        simplified tower silhouette, corner, subject-lit
-    track 3  avatar slot    reserved presenter frame (full-frame → corner → full)
+    track 3  presenter      full-frame slot, cold open and recap only
     track 4  captions       burned-in, bottom-centre, max two lines
 
   All text, timing, figures and fault lines come from content/content.js.
@@ -48,35 +48,38 @@
         font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
       }
 
-      /* ---- avatar slot ----------------------------------------------- */
-      /* Option B: the HeyGen talking head is not generated yet. This frame is
-         staged at the exact geometry it will occupy so it drops straight in. */
-      #avatar-slot {
+      /* ---- presenter slots (option B) --------------------------------- */
+      /* The presenter appears full-frame in the cold open and the recap only.
+         Scenes 2-6 have no presenter, so the diagrams own the whole frame.
+         Each slot is staged at the geometry the talking head will occupy;
+         swap the placeholder for <video src="assets/presenter-*.mp4" muted>
+         and nothing else needs to change. */
+      .avatar-frame {
         position: absolute; left: 140px; top: 140px;
         width: 620px; height: 780px;
-        transform-origin: 0 0;
         border: 1.5px dashed #64748b; border-radius: 14px;
         background: rgba(226, 232, 240, 0.5);
         display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 18px;
+        overflow: hidden;
       }
-      #avatar-slot .av-mark {
+      .avatar-frame .av-mark {
         width: 132px; height: 132px; border-radius: 50%;
         border: 1.5px solid #64748b; position: relative;
       }
-      #avatar-slot .av-mark::before {
+      .avatar-frame .av-mark::before {
         content: ""; position: absolute; left: 50%; top: 30px;
         width: 44px; height: 44px; margin-left: -22px; border-radius: 50%;
         border: 1.5px solid #64748b;
       }
-      #avatar-slot .av-mark::after {
+      .avatar-frame .av-mark::after {
         content: ""; position: absolute; left: 50%; top: 82px;
         width: 76px; height: 40px; margin-left: -38px;
         border: 1.5px solid #64748b; border-bottom: none;
         border-radius: 38px 38px 0 0;
       }
-      #avatar-slot .av-role { font-size: 25px; color: #475569; font-weight: 700; }
-      #avatar-slot .av-note {
+      .avatar-frame .av-role { font-size: 25px; color: #475569; font-weight: 700; }
+      .avatar-frame .av-note {
         font-size: 25px; color: #64748b; max-width: 440px;
         text-align: center; line-height: 1.35;
       }
@@ -137,10 +140,18 @@
         </div>
       </div>
 
-      <!-- track 3 — reserved presenter slot -->
-      <div id="avatar-clip" class="clip" data-start="0" data-duration="339.92" data-track-index="3"
+      <!-- track 3 — presenter slots: cold open and recap only -->
+      <div id="avatar-clip-open" class="clip" data-start="0" data-duration="17.61" data-track-index="3"
            style="position:absolute; inset:0;">
-        <div id="avatar-slot">
+        <div id="avatar-frame-open" class="avatar-frame">
+          <div class="av-mark"></div>
+          <div class="av-role"></div>
+          <div class="av-note"></div>
+        </div>
+      </div>
+      <div id="avatar-clip-close" class="clip" data-start="311.44" data-duration="28.48" data-track-index="3"
+           style="position:absolute; inset:0;">
+        <div id="avatar-frame-close" class="avatar-frame">
           <div class="av-mark"></div>
           <div class="av-role"></div>
           <div class="av-note"></div>
@@ -211,10 +222,11 @@
         });
         locBody.appendChild(svg);
 
-        /* ---------------- avatar slot ---------------------------------- */
-        const av = document.getElementById("avatar-slot");
-        av.querySelector(".av-role").textContent = C.avatar.role;
-        av.querySelector(".av-note").textContent = C.avatar.note;
+        /* ---------------- presenter slots ------------------------------ */
+        Array.prototype.forEach.call(document.querySelectorAll(".avatar-frame"), function (av) {
+          av.querySelector(".av-role").textContent = C.avatar.role;
+          av.querySelector(".av-note").textContent = C.avatar.note;
+        });
 
         /* ---------------- caption cards -------------------------------- */
         const capHost = document.getElementById("captions");
@@ -242,21 +254,13 @@
           tl.set("#cap-" + i, { autoAlpha: 0 }, card.end);
         });
 
-        // avatar slot: full frame → corner cutout → full frame for the recap
-        const F = C.avatar.full, K = C.avatar.corner;
-        const shrinkAt = C.cue("1.3").end;
-        const growAt = C.scenes.s7.start;
-        gsap.set("#avatar-slot", { x: 0, y: 0, scale: 1 });
-        tl.to("#avatar-slot",
-          { x: K.x - F.x, y: K.y - F.y, scale: K.scale, duration: 0.9, ease: "power3.inOut" },
-          shrinkAt);
-        tl.to("#avatar-slot",
-          { x: 0, y: 0, scale: 1, duration: 0.9, ease: "power3.inOut" },
-          growAt - 0.5);
+        // The presenter no longer travels between a full frame and a corner
+        // cutout: it simply appears in the two clips that carry it, so the
+        // framework owns its visibility and no tween is needed.
 
         // locator: fade the whole card in as scene 2 establishes it
         gsap.set("#locator", { autoAlpha: 0 });
-        tl.to("#locator", { autoAlpha: 1, duration: 0.6, ease: "power2.out" }, C.cue("2.6").start - 17.61);
+        tl.to("#locator", { autoAlpha: 1, duration: 0.6, ease: "power2.out" }, C.cue("2.6").start);
 
         // locator: light the current subject, dim the rest
         const dim = { fill: C.palette.metalLight, stroke: C.palette.inkFaint };
@@ -265,7 +269,7 @@
           gsap.set("#loc-name-" + s.id, { color: C.palette.inkFaint });
         });
         C.locator.lit.forEach(function (step) {
-          const t = Math.max(0, C.cue(step.cue).start - 17.61);
+          const t = C.cue(step.cue).start;
           C.locator.subjects.forEach(function (s) {
             const on = step.subject === "all" || step.subject === s.id;
             tl.to("#loc-mark-" + s.id + " rect",
